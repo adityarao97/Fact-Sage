@@ -3,6 +3,8 @@
 import type React from "react"
 
 import { useState } from "react"
+import Tooltip from "@mui/material/Tooltip"
+import LinearProgress from "@mui/material/LinearProgress"
 import { FileText, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -38,6 +40,12 @@ export function TextInput({ onResult }: TextInputProps) {
 
     setIsLoading(true)
     setProgress("Initializing AI model...")
+
+    // toast for on-device model loading
+    toast({
+      title: "Loading on-device model",
+      description: "This may take a moment the first time. Everything runs in your browser.",
+    })
 
     try {
       // Extract claims locally using Transformers.js
@@ -138,7 +146,21 @@ export function TextInput({ onResult }: TextInputProps) {
     <div className="space-y-6">
       {/* Text Input */}
       <div className="space-y-2">
-        <Label htmlFor="text-input">Enter Text</Label>
+        {/* Label + on-device AI tooltip pill */}
+        <div className="flex items-center justify-between">
+          <Label htmlFor="text-input">Enter Text</Label>
+
+          <Tooltip title="Claim extraction runs in your browser using an on-device model. No text is sent to the server for this step.">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-[11px] font-medium text-purple-700 shadow-sm dark:border-purple-500/40 dark:bg-purple-500/10 dark:text-purple-100"
+            >
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+              On-device AI
+            </button>
+          </Tooltip>
+        </div>
+
         <Textarea
           id="text-input"
           placeholder="Enter text to extract claims from..."
@@ -161,6 +183,25 @@ export function TextInput({ onResult }: TextInputProps) {
             </>
           )}
         </Button>
+
+        {/* Loader bar (purple gradient) while isLoading is true */}
+        {isLoading && (
+          <div className="mt-1">
+            <LinearProgress
+              sx={{
+                "&.MuiLinearProgress-root": {
+                  backgroundColor: "rgba(147, 51, 234, 0.18)", // subtle purple track
+                  borderRadius: 9999,
+                  height: 6,
+                },
+                "& .MuiLinearProgress-bar": {
+                  backgroundImage: "linear-gradient(to right, #a855f7, #7c3aed)", // purple → deeper purple
+                  borderRadius: 9999,
+                },
+              }}
+            />
+          </div>
+        )}
       </div>
 
       <div className="relative">
