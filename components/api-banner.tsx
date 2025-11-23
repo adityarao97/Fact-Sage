@@ -20,7 +20,7 @@ export function ApiBanner() {
       <AlertCircle className="h-4 w-4 text-orange-600" />
       <AlertDescription className="text-orange-900">
         <strong>API Configuration:</strong> NEXT_PUBLIC_API_BASE environment variable is not set. Using default:
-        http://Check-mate-env.eba-kdf2pckq.us-east-2.elasticbeanstalk.com
+        http://fact-sage-env.eba-kdf2pckq.us-east-2.elasticbeanstalk.com
       </AlertDescription>
     </Alert>
   )

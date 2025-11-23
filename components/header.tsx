@@ -15,7 +15,7 @@ export function Header() {
               <Sparkles className="h-3 w-3 text-accent absolute -top-1 -right-1 z-10" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight gradient-text">check-mate</h1>
+              <h1 className="text-2xl font-bold tracking-tight gradient-text">fact-sage</h1>
               <p className="text-xs text-muted-foreground">AI-Powered Fact Verification</p>
             </div>
           </div>

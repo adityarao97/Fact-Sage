@@ -27,7 +27,7 @@ export function SettingsPopover() {
 
   useEffect(() => {
     setApiBase(getApiBase())
-    const savedLang = localStorage.getItem("check-mate-default-lang")
+    const savedLang = localStorage.getItem("fact-sage-default-lang")
     if (savedLang) {
       setDefaultLanguage(savedLang)
     }
@@ -35,7 +35,7 @@ export function SettingsPopover() {
 
   const handleLanguageChange = (value: string) => {
     setDefaultLanguage(value)
-    localStorage.setItem("check-mate-default-lang", value)
+    localStorage.setItem("fact-sage-default-lang", value)
   }
 
   return (
@@ -50,7 +50,7 @@ export function SettingsPopover() {
         <div className="space-y-4">
           <div className="space-y-2">
             <h4 className="font-medium leading-none">Settings</h4>
-            <p className="text-sm text-muted-foreground">Configure your check-mate preferences</p>
+            <p className="text-sm text-muted-foreground">Configure your fact-sage preferences</p>
           </div>
 
           <div className="space-y-2">

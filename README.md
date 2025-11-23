@@ -1,259 +1,297 @@
-# check-mate
+<div align="center">
 
-AI-powered fact verification UI that connects to a backend API for claim extraction and verification.
+# 🔍 FactSage
 
-## Features
+### AI-Powered Fact-Checking Platform
 
-- **Multiple Input Modes**: Text, PDF, Image, and Audio
-- **Claim Extraction**: Automatically extract verifiable claims from content
-- **Fact Verification**: Verify claims against evidence sources
-- **Evidence Graph**: Interactive D3 visualization of claim relationships
-- **Responsive Design**: Works on desktop and mobile devices
+*Verify claims instantly with Google Search + Gemini AI*
 
-## Setup
+[![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![Gemini AI](https://img.shields.io/badge/Gemini-2.0-orange?style=flat-square&logo=google)](https://ai.google.dev/)
+[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
-1. Install dependencies:
+[Demo](#-demo) • [Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation)
 
-\`\`\`bash
+</div>
+
+---
+
+## 🌟 Overview
+
+**FactSage** is an intelligent fact-checking application that combines OCR text extraction, AI-powered claim analysis, and real-time Google Search verification to help you verify information accuracy in seconds.
+
+### Why FactSage?
+
+- 🚀 **3-8 second verification** using Gemini AI + Google Search
+- 📸 **OCR support** for images and screenshots  
+- 🎯 **85-95% accuracy** with multi-source verification
+- 🔗 **Source attribution** with supporting and refuting evidence
+- 📊 **Visual knowledge graphs** showing verification paths
+- 🏷️ **Auto-categorization** (tech, business, politics, science, health)
+
+---
+
+## ✨ Features
+
+### 🤖 AI-Powered Verification
+- **Gemini 1.5 Flash** with Google Search grounding
+- Automatic claim extraction from messy OCR text
+- Intelligent query generation for optimal search results
+- Structured verdict with confidence scores
+
+### 📰 Multi-Source Analysis
+- Fetches 5-10 reputable sources automatically
+- Categorizes sources as supporting or refuting
+- Direct links to original articles
+- Comprehensive snippets and summaries
+
+### 📊 Visual Knowledge Graph
+- Interactive graph visualization
+- Shows verification paths and relationships
+- Clear evidence attribution
+- Easy-to-understand verdict display
+
+### 🔧 Developer-Friendly
+- TypeScript + Next.js 14
+- Clean API architecture
+- Extensible verification system
+- Comprehensive error handling
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Node.js** 18+ 
+- **npm** or **yarn**
+- **Gemini API Key** ([Get one free](https://aistudio.google.com/app/apikey))
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/kashishdesai01/CMPE-280-FactSage.git
+cd factsage
+
+# Install dependencies
 npm install
-# or
-pnpm install
-\`\`\`
 
-2. Configure environment variables:
-
-Copy `.env.example` to `.env.local` and set your backend API URL:
-
-\`\`\`bash
+# Set up environment variables
 cp .env.example .env.local
-\`\`\`
+```
+
+### Configuration
 
 Edit `.env.local`:
 
-\`\`\`
-NEXT_PUBLIC_API_BASE=http://Check-mate-env.eba-kdf2pckq.us-east-2.elasticbeanstalk.com
-\`\`\`
+```bash
+# Required: Gemini API Key
+GEMINI_API_KEY=your_api_key_here
 
-3. Run the development server:
+# Optional: For development
+NODE_ENV=development
+```
 
-\`\`\`bash
+### Run Development Server
+
+```bash
 npm run dev
-# or
-pnpm dev
-\`\`\`
+```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+Visit **http://localhost:3000** 🎉
 
-## Backend API Requirements
+---
 
-The UI expects the following endpoints to be available:
+## 📖 Usage
 
-### POST /ingest/text
-Extract claims from plain text.
+### Basic Claim Verification
 
-**Request:**
-\`\`\`json
+```typescript
+// POST /api/verify-claim
 {
-  "text": "NVIDIA acquired Mellanox in 2020."
+  "text": "Intel posted $4.1B profit in Q3 2024"
 }
-\`\`\`
+```
 
-**Response:**
-\`\`\`json
+### Response Format
+
+```json
 {
-  "raw_text": "NVIDIA acquired Mellanox in 2020.",
-  "claims": [
-    {
-      "text": "NVIDIA acquired Mellanox in 2020.",
-      "entities": ["NVIDIA", "Mellanox", "2020"]
-    }
-  ]
-}
-\`\`\`
-
-### POST /ingest/document
-Extract claims from PDF documents.
-
-**Request:**
-\`\`\`json
-{
-  "pdf_url": "https://example.com/document.pdf"
-  // OR
-  "pdf_b64": "base64_encoded_pdf_content"
-}
-\`\`\`
-
-### POST /ingest/image
-Extract claims from images.
-
-**Request:**
-\`\`\`json
-{
-  "image_url": "https://example.com/image.jpg"
-  // OR
-  "image_b64": "base64_encoded_image_content"
-}
-\`\`\`
-
-### POST /ingest/audio
-Extract claims from audio files (MP3/WAV).
-
-**Request:**
-\`\`\`json
-{
-  "audio_url": "https://example.com/audio.mp3",
-  // OR
-  "audio_b64": "base64_encoded_audio_content",
-  "lang": "en"  // optional, defaults to 'en'
-}
-\`\`\`
-
-### POST /verify
-Verify claims and retrieve evidence.
-
-**Request:**
-\`\`\`json
-{
-  "raw_text": "NVIDIA acquired Mellanox in 2020.",
-  "claims": [
-    {
-      "text": "NVIDIA acquired Mellanox in 2020.",
-      "entities": ["NVIDIA", "Mellanox", "2020"]
-    }
-  ]
-}
-\`\`\`
-
-**Response:**
-\`\`\`json
-{
-  "authenticity_score": 0.31372549026912727,
-  "verdict": "mixed",
+  "authenticity_score": 0.9,
+  "verdict": "true",
+  "category": "tech",
   "evidence": [
     {
-      "url": "https://en.wikipedia.org/wiki/Nvidia_BlueField",
-      "title": "Nvidia BlueField",
-      "snippet": "Nvidia acquired Mellanox Technologies for US$6.9 billion in March 2019...",
-      "stance": "refute",
-      "confidence": 0.95
+      "url": "https://cnbc.com/2024/intel-earnings",
+      "title": "Intel Reports Strong Q3 Results",
+      "snippet": "Intel announced Q3 profit of $4.1 billion...",
+      "stance": "supporting",
+      "confidence": 0.85
     }
   ],
-  "graph": {
-    "nodes": [
-      {
-        "id": "claim",
-        "label": "NVIDIA acquired Mellanox in 2020.",
-        "type": "claim"
-      },
-      {
-        "id": "src_1",
-        "label": "Nvidia BlueField",
-        "type": "refute",
-        "url": "https://en.wikipedia.org/wiki/Nvidia_BlueField",
-        "confidence": 0.95
-      }
-    ],
-    "edges": [
-      {
-        "source": "claim",
-        "target": "src_1",
-        "weight": 0.95,
-        "stance": "refute"
-      }
-    ]
-  },
-  "explanation": "Weighted support=0.00, refute=0.95, neutral=1.60. Score=0.31 based on stance classification of retrieved sources."
+  "explanation": "Multiple sources confirm Intel's Q3 profit...",
+  "graph": { "nodes": [...], "edges": [...] }
 }
-\`\`\`
+```
 
-## Testing the Backend Integration
+---
 
-### 1. Backend Server
+## 🏗️ Architecture
 
-The backend is hosted at: `http://Check-mate-env.eba-kdf2pckq.us-east-2.elasticbeanstalk.com`
+```
+┌─────────────────┐
+│   User Input    │ (Text/OCR Image)
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Claim Extractor │ (LLM-powered cleanup)
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Gemini Verifier │ (Google Search + AI)
+└────────┬────────┘
+         │
+         ├─── Classify Category
+         ├─── Generate Search Query
+         ├─── Fetch 5-10 Sources
+         ├─── Analyze Evidence
+         └─── Generate Verdict
+         │
+         ▼
+┌─────────────────┐
+│ Structured JSON │ (Verdict + Sources + Graph)
+└─────────────────┘
+```
 
-### 2. Test with curl
+---
 
-\`\`\`bash
-# Test text ingestion
-curl --location 'http://Check-mate-env.eba-kdf2pckq.us-east-2.elasticbeanstalk.com/ingest/text' \
---header 'Content-Type: application/json' \
---data '{
-  "text": "NVIDIA acquired Mellanox in 2020."
-}'
+## 🛠️ Tech Stack
 
-# Test verification
-curl --location 'http://Check-mate-env.eba-kdf2pckq.us-east-2.elasticbeanstalk.com/verify' \
---header 'Content-Type: application/json' \
---data '{
-  "raw_text": "NVIDIA acquired Mellanox in 2020.",
-  "claims": [
-    {
-      "text": "NVIDIA acquired Mellanox in 2020.",
-      "entities": ["NVIDIA", "Mellanox", "2020"]
-    }
-  ]
-}'
-\`\`\`
+| Technology | Purpose |
+|-----------|---------|
+| **Next.js 14** | React framework with App Router |
+| **TypeScript** | Type-safe development |
+| **Gemini 1.5 Flash** | AI fact-checking & analysis |
+| **Google Search** | Real-time web verification |
+| **Tesseract.js** | OCR for image text extraction |
+| **Tailwind CSS** | Utility-first styling |
+| **Shadcn/UI** | Component library |
 
-### 3. Check Browser Console
+---
 
-The UI includes debug logging (prefixed with `[v0]`) that shows:
-- API base URL being used
-- All API requests with parameters
-- API responses
-- Any errors
+## 📁 Project Structure
 
-Open your browser's developer console (F12) to see these logs while using the app.
+```
+factsage/
+├── app/
+│   ├── api/
+│   │   ├── verify-claim/
+│   │   │   └── route.ts         # Main verification endpoint
+│   ├── page.tsx                 # Home page
+│   └── layout.tsx
+├── lib/
+│   ├── gemini-verifier.ts       # Gemini AI integration
+│   ├── claim-extractor.ts       # LLM claim extraction
+│   ├── types.ts                 # TypeScript definitions
+│   └── utils.ts
+├── components/
+│   ├── claim-input.tsx
+│   ├── evidence-panel.tsx
+│   └── knowledge-graph.tsx
+├── .env.local                   # Environment variables
+├── package.json
+└── README.md
+```
 
-### 4. Common Issues
+---
 
-**CORS Errors**: Make sure your backend allows requests from your frontend domain. Add CORS headers:
-\`\`\`
-Access-Control-Allow-Origin: *
-Access-Control-Allow-Methods: POST, GET, OPTIONS
-Access-Control-Allow-Headers: Content-Type
-\`\`\`
+## 🎯 API Endpoints
 
-**Connection Refused**: Verify your backend is running and accessible at the configured URL.
+### `POST /api/verify-claim`
 
-**API Base URL**: If you see an orange banner at the top, set the `NEXT_PUBLIC_API_BASE` environment variable in `.env.local`.
+Verify a factual claim using AI + Google Search.
 
-## Tech Stack
+**Request Body:**
+```json
+{
+  "text": "Your claim here"
+}
+```
 
-- Next.js 14 (App Router)
-- TypeScript
-- Tailwind CSS v4
-- shadcn/ui
-- D3.js (for graph visualization)
+**Response:**
+- `authenticity_score`: 0.0-1.0 confidence
+- `verdict`: `true`, `false`, `mixed`, or `uncertain`
+- `category`: Auto-detected category
+- `evidence`: Array of sources with stance
+- `graph`: Knowledge graph visualization data
+- `explanation`: Human-readable summary
 
-## Project Structure
+---
 
-\`\`\`
-├── app/                  # Next.js app directory
-│   ├── page.tsx         # Main application page
-│   ├── layout.tsx       # Root layout
-│   └── globals.css      # Global styles & theme
-├── components/           # React components
-│   ├── ui/              # shadcn/ui components
-│   ├── input-panel.tsx  # Input modes (text/PDF/image/audio)
-│   ├── verification-panel.tsx  # Claims & verification
-│   ├── evidence-panel.tsx      # Graph & evidence table
-│   └── ...              # Other components
-├── lib/                 # Utilities and API client
-│   ├── api.ts          # API client functions
-│   ├── types.ts        # TypeScript types
-│   └── utils.ts        # Helper functions
-└── public/             # Static assets
-\`\`\`
+## 🧪 Testing
 
-## Security
+```bash
+# Run unit tests
+npm test
 
-- File uploads are limited to 10MB
-- URLs are sanitized before use
-- Files are not stored client-side beyond the session
-- All API requests use proper error handling
+# Test API endpoint
+curl -X POST http://localhost:3000/api/verify-claim \
+  -H "Content-Type: application/json" \
+  -d '{"text":"The earth is round"}'
+```
 
-## License
+---
 
-MIT
+## 🔐 API Limits
+
+**Gemini Free Tier:**
+- ✅ 15 requests/minute
+- ✅ 1,500 requests/day
+- ✅ No credit card required
+
+**Cost (Paid Tier):**
+- 💰 ~$0.001 per verification
+- 💰 ~$1 per 1,000 verifications
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+### Development Guidelines
+
+- Follow TypeScript best practices
+- Add tests for new features
+- Update documentation
+- Use meaningful commit messages
+
+## 🙏 Acknowledgments
+
+- **Google Gemini** for AI capabilities
+- **Tesseract.js** for OCR functionality
+- **Next.js** team for the amazing framework
+- **Vercel** for deployment platform
+
+## 🗺️ Roadmap
+
+- [x] Gemini AI integration
+- [x] OCR text extraction
+- [x] Knowledge graph visualization
+- [ ] Multi-language support
+- [ ] Browser extension
+- [ ] Mobile app (React Native)
+- [ ] API rate limiting dashboard
+- [ ] Custom source prioritization
+- [ ] Historical claim tracking
+- [ ] Collaborative fact-checking

@@ -10,7 +10,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "check-mate - AI Fact Verification",
+  title: "fact-sage - AI Fact Verification",
   description: "Verify claims with AI-powered fact checking",
     generator: 'v0.app'
 }
