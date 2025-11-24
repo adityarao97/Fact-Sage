@@ -60,6 +60,22 @@ export function VerificationPanel({
   const [isEvidenceOpen, setIsEvidenceOpen] = useState(true);
   const { toast } = useToast();
 
+  // KPI stats
+  const totalSources = verificationResult?.evidence?.length ?? 0;
+  const supportingCount = (verificationResult?.evidence || []).filter(
+    (e) => e.stance === "supporting"
+  ).length;
+  const refutingCount = (verificationResult?.evidence || []).filter(
+    (e) => e.stance === "refuting"
+  ).length;
+  const neutralCount = (verificationResult?.evidence || []).filter(
+    (e) => e.stance === "neutral"
+  ).length;
+  const uniqueEntities = new Set(
+    claims.flatMap((claim) => claim.entities ?? [])
+  );
+  const entityCount = uniqueEntities.size;
+
   const handleVerify = async () => {
     if (selectedClaims.length === 0) {
       toast({
@@ -286,6 +302,37 @@ export function VerificationPanel({
                   </span>
                 </Badge>
                 <span className="text-sm text-muted-foreground">Verdict</span>
+              </div>
+            </div>
+
+            {/* KPI Tiles */}
+            <div className="grid grid-cols-2 gap-3 text-xs mt-2">
+              <div className="rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-100 px-3 py-2">
+                <p className="text-[11px] text-muted-foreground">Sources</p>
+                <p className="text-lg font-semibold">{totalSources}</p>
+              </div>
+
+              <div className="rounded-lg bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-100 px-3 py-2">
+                <p className="text-[11px] text-muted-foreground">
+                  Supporting
+                </p>
+                <p className="text-lg font-semibold text-emerald-700">
+                  {supportingCount}
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-gradient-to-br from-rose-50 to-red-50 border border-rose-100 px-3 py-2">
+                <p className="text-[11px] text-muted-foreground">Refuting</p>
+                <p className="text-lg font-semibold text-rose-700">
+                  {refutingCount}
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 px-3 py-2">
+                <p className="text-[11px] text-muted-foreground">
+                  Entities
+                </p>
+                <p className="text-lg font-semibold">{entityCount}</p>
               </div>
             </div>
 
