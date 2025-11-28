@@ -67,20 +67,44 @@ Extract the claims as a numbered list. Be concise and precise.
 
     // Parse numbered list from LLM output
     const lines = response.split("\n").map((l: string) => l.trim()).filter(Boolean)
+    // Validity check: if response contains no alphabetic characters,
+    // treat it as invalid/garbage (e.g., repeated "0: 0: 0:") and skip parsing.
+    const hasLetters = /[A-Za-zÀ-ÿ]/.test(response)
+    if (!hasLetters) {
+      console.warn("[CLAIM-EXTRACT] LLM returned non-textual output, falling back to original text")
+    }
     const claims: Claim[] = []
+    // Helper to detect garbage LLM outputs (e.g., "0: 0: 0: ...")
+    function isValidClaimText(t: string) {
+      if (!t || t.length < 15) return false
+      // Must contain at least one alphabetic character
+      if (!/[A-Za-zÀ-ÿ]/.test(t)) return false
+      // Reject sequences that are mostly digits/punctuation (e.g., "0: 0: 0:")
+      const tokens = t.split(/\s+/)
+      const numericLike = tokens.filter((tok) => /^\d+[:\.)-]*$/.test(tok))
+      if (numericLike.length / Math.max(1, tokens.length) > 0.6) return false
+      return true
+    }
 
     for (const line of lines) {
       // Match lines that start with numbers: "1. ", "1) ", "1:", etc.
       const match = line.match(/^(\d+)[\.\)\:]?\s+(.+)$/)
       if (match && match[2]) {
+        // Ignore lists that start counting from 0 which is often a sign of
+        // malformed LLM output (e.g., "0: 0: 0:")
+        if (match[1] === "0") {
+          console.warn("[CLAIM-EXTRACT] Ignoring numbered item starting at 0 from LLM")
+          continue
+        }
         const claimText = match[2].trim()
-        if (claimText.length > 15) {
-          // Minimum claim length
+        if (hasLetters && isValidClaimText(claimText)) {
           claims.push({
             text: claimText,
             entities: extractEntitiesForMetadata(claimText),
             context: text.substring(0, 200),
           })
+        } else {
+          console.warn("[CLAIM-EXTRACT] Skipping invalid claim text from LLM:", claimText.slice(0, 120))
         }
       }
     }
@@ -88,7 +112,10 @@ Extract the claims as a numbered list. Be concise and precise.
     console.log(`[CLAIM-EXTRACT] Parsed ${claims.length} claims`)
 
     // If LLM didn't return structured output, try to use the whole response
-    if (claims.length === 0 && response.length > 15) {
+    // If LLM didn't return structured output or returned garbage, only use
+    // the full response if it appears to be valid text. Otherwise fall back
+    // to the original input text to avoid passing numeric garbage.
+    if (claims.length === 0 && response.length > 15 && hasLetters) {
       console.log("[CLAIM-EXTRACT] Using full LLM response as single claim")
       claims.push({
         text: response,
