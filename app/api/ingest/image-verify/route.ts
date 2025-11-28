@@ -39,7 +39,8 @@ export async function POST(req: NextRequest) {
     let res: Response;
 
     if (imageUrl) {
-      // Send URL directly to Sightengine
+      console.log("[image-verify] Using imageUrl:", imageUrl);
+
       const url = new URL("https://api.sightengine.com/1.0/check.json");
       url.searchParams.set("models", "genai");
       url.searchParams.set("api_user", apiUser);
@@ -48,13 +49,29 @@ export async function POST(req: NextRequest) {
 
       res = await fetch(url.toString(), { method: "GET" });
     } else {
-      // imageBase64 path (data URL or raw base64)
+      if (!imageBase64) {
+        throw new Error("imageBase64 is empty");
+      }
+
+      console.log(
+        "[image-verify] Received imageBase64 length:",
+        imageBase64.length
+      );
+
+      // imageBase64 can be a data URL or raw base64
       const base64Data = imageBase64.includes(",")
         ? imageBase64.split(",")[1]
         : imageBase64;
 
       const buffer = Buffer.from(base64Data, "base64");
-      const blob = new Blob([buffer]);
+      console.log("[image-verify] Decoded buffer size:", buffer.length);
+
+      if (!buffer.length) {
+        throw new Error("Empty image buffer after base64 decode");
+      }
+
+      // Create a Blob for FormData; type doesn't matter much, but JPEG is safe
+      const blob = new Blob([buffer], { type: "image/jpeg" });
 
       const formData = new FormData();
       formData.append("media", blob, "image.jpg");
@@ -70,16 +87,23 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       const text = await res.text();
+      console.warn(
+        "[image-verify] Sightengine non-OK response:",
+        res.status,
+        text
+      );
+
       const result: ImageVerificationResult = {
         provider: "heuristics",
         is_tampered: null,
         tampering_score: null,
-        reasons: [`Sightengine API error: ${res.status} ${text.slice(0, 200)}`],
+        reasons: [`Sightengine API error: ${res.status} ${text.slice(0, 400)}`],
       };
-      return NextResponse.json(result, { status: 200 }); // don’t break UI
+      return NextResponse.json(result, { status: 200 }); // keep UI alive
     }
 
     const data: any = await res.json();
+    console.log("[image-verify] Sightengine response:", data);
 
     if (
       data.status !== "success" ||
@@ -99,24 +123,24 @@ export async function POST(req: NextRequest) {
     }
 
     const score = data.type.ai_generated as number; // 0–1
-    const isTampered = score > 0.7;
 
+    let isTampered: boolean | null = null;
     const reasons: string[] = [];
-    if (score > 0.9) {
+
+    if (score >= 0.85) {
+      isTampered = true;
       reasons.push(
-        "Model is highly confident this image is AI-generated (ai_generated > 0.9)."
+        "Model is highly confident this image is AI-generated (ai_generated ≥ 0.85)."
       );
-    } else if (score > 0.7) {
+    } else if (score <= 0.15) {
+      isTampered = false;
       reasons.push(
-        "Model indicates this image is likely AI-generated (ai_generated > 0.7)."
-      );
-    } else if (score < 0.3) {
-      reasons.push(
-        "Model indicates this image is likely not AI-generated (ai_generated < 0.3)."
+        "Model suggests this image is more likely human-made or traditionally edited than AI-generated (ai_generated ≤ 0.15)."
       );
     } else {
+      isTampered = null;
       reasons.push(
-        "Model is uncertain whether this image is AI-generated (ai_generated between 0.3 and 0.7)."
+        "Model is uncertain whether this image is AI-generated (ai_generated between 0.15 and 0.85)."
       );
     }
 
@@ -131,6 +155,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result);
   } catch (err: any) {
     console.error("[image-verify] Error:", err);
+
     const result: ImageVerificationResult = {
       provider: "heuristics",
       is_tampered: null,
