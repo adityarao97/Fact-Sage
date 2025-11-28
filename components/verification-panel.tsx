@@ -31,17 +31,23 @@ import { ScoreGauge } from "@/components/score-gauge";
 import { ClaimsList } from "@/components/claims-list";
 import { JsonDownload } from "@/components/json-download";
 import { EvidenceGraph } from "@/components/evidence-graph";
-import type { Claim, VerifyResponse } from "@/lib/types";
+import type {
+  Claim,
+  VerifyResponse,
+  ImageVerificationResult,
+} from "@/lib/types";
 
 interface VerificationPanelProps {
   rawText: string;
   claims: Claim[];
+  imageVerification?: ImageVerificationResult | null;
   onVerificationComplete: (result: VerifyResponse) => void;
 }
 
 export function VerificationPanel({
   rawText,
   claims,
+  imageVerification,
   onVerificationComplete,
 }: VerificationPanelProps) {
   const [selectedClaims, setSelectedClaims] = useState<Claim[]>(
@@ -205,6 +211,54 @@ export function VerificationPanel({
             `Verify Selected Claims (${selectedClaims.length})`
           )}
         </Button>
+        {/* Image Authenticity (from ingest, even before claim verification) */}
+        {imageVerification && (
+          <div className="space-y-2 pt-2 border-t border-purple-100">
+            <h3 className="font-semibold">Image Authenticity</h3>
+            <div className="p-4 rounded-lg border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold">
+                    Image Authenticity
+                  </span>
+                  <Badge variant="outline" className="text-xs">
+                    {imageVerification.provider}
+                  </Badge>
+                </div>
+                {imageVerification.is_tampered === null ? (
+                  <Badge className="bg-gradient-to-r from-gray-500 to-slate-500 text-white">
+                    <HelpCircle className="h-3 w-3 mr-1" />
+                    Inconclusive
+                  </Badge>
+                ) : imageVerification.is_tampered ? (
+                  <Badge className="bg-gradient-to-r from-red-500 to-rose-500 text-white">
+                    <XCircle className="h-3 w-3 mr-1" />
+                    Likely manipulated / AI-generated
+                  </Badge>
+                ) : (
+                  <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    Likely original
+                  </Badge>
+                )}
+              </div>
+
+              <div className="text-xs text-muted-foreground">
+                Score:{" "}
+                {imageVerification.tampering_score !== null
+                  ? imageVerification.tampering_score.toFixed(2)
+                  : "N/A"}{" "}
+                (0 = likely real, 1 = likely fake/AI)
+              </div>
+
+              <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
+                {imageVerification.reasons.map((reason, idx) => (
+                  <li key={idx}>{reason}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
 
         {/* Verification Results */}
         {verificationResult && (
@@ -234,6 +288,58 @@ export function VerificationPanel({
                 <span className="text-sm text-muted-foreground">Verdict</span>
               </div>
             </div>
+
+            {/* Image Authenticity (if available) */}
+            {verificationResult.image_verification && (
+              <div className="p-4 rounded-lg border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold">
+                      Image Authenticity
+                    </span>
+                    <Badge variant="outline" className="text-xs">
+                      {verificationResult.image_verification.provider}
+                    </Badge>
+                  </div>
+                  {verificationResult.image_verification.is_tampered ===
+                  null ? (
+                    <Badge className="bg-gradient-to-r from-gray-500 to-slate-500 text-white">
+                      <HelpCircle className="h-3 w-3 mr-1" />
+                      Inconclusive
+                    </Badge>
+                  ) : verificationResult.image_verification.is_tampered ? (
+                    <Badge className="bg-gradient-to-r from-red-500 to-rose-500 text-white">
+                      <XCircle className="h-3 w-3 mr-1" />
+                      Likely manipulated / AI-generated
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Likely original
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="text-xs text-muted-foreground">
+                  Score:{" "}
+                  {verificationResult.image_verification.tampering_score !==
+                  null
+                    ? verificationResult.image_verification.tampering_score.toFixed(
+                        2
+                      )
+                    : "N/A"}{" "}
+                  (0 = likely real, 1 = likely fake/AI)
+                </div>
+
+                <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
+                  {verificationResult.image_verification.reasons.map(
+                    (reason, idx) => (
+                      <li key={idx}>{reason}</li>
+                    )
+                  )}
+                </ul>
+              </div>
+            )}
 
             {/* Category display if available */}
             {verificationResult.category && (

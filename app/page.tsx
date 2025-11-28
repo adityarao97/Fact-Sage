@@ -1,26 +1,27 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Header } from "@/components/header"
-import { ApiBanner } from "@/components/api-banner"
-import { InputPanel } from "@/components/input-panel"
-import { VerificationPanel } from "@/components/verification-panel"
-import { EvidencePanel } from "@/components/evidence-panel"
-import { CheckCircle2 } from "lucide-react"
-import type { IngestResponse, VerifyResponse } from "@/lib/types"
+import { useState } from "react";
+import { Header } from "@/components/header";
+import { ApiBanner } from "@/components/api-banner";
+import { InputPanel } from "@/components/input-panel";
+import { VerificationPanel } from "@/components/verification-panel";
+import { EvidencePanel } from "@/components/evidence-panel";
+import { CheckCircle2 } from "lucide-react";
+import type { IngestResponse, VerifyResponse } from "@/lib/types";
 
 export default function Home() {
-  const [ingestResult, setIngestResult] = useState<IngestResponse | null>(null)
-  const [verificationResult, setVerificationResult] = useState<VerifyResponse | null>(null)
+  const [ingestResult, setIngestResult] = useState<IngestResponse | null>(null);
+  const [verificationResult, setVerificationResult] =
+    useState<VerifyResponse | null>(null);
 
   const handleIngestResult = (result: IngestResponse) => {
-    setIngestResult(result)
-    setVerificationResult(null)
-  }
+    setIngestResult(result);
+    setVerificationResult(null);
+  };
 
   const handleVerificationComplete = (result: VerifyResponse) => {
-    setVerificationResult(result)
-  }
+    setVerificationResult(result);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50/30 via-blue-50/30 to-pink-50/30">
@@ -38,6 +39,7 @@ export default function Home() {
               <VerificationPanel
                 rawText={ingestResult.raw_text}
                 claims={ingestResult.claims}
+                imageVerification={ingestResult?.image_verification ?? null}
                 onVerificationComplete={handleVerificationComplete}
               />
             ) : (
@@ -60,5 +62,5 @@ export default function Home() {
         </div>
       </main>
     </div>
-  )
+  );
 }
