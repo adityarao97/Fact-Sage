@@ -353,7 +353,7 @@ export function VerificationPanel({
               </div>
             )}
 
-            {verificationResult.graph &&
+            {/* {verificationResult.graph &&
               verificationResult.graph.nodes.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium">Evidence Graph</h4>
@@ -380,9 +380,9 @@ export function VerificationPanel({
                     </div>
                   </div>
                 </div>
-              )}
+              )} */}
 
-            {verificationResult.evidence &&
+            {/* {verificationResult.evidence &&
               verificationResult.evidence.length > 0 && (
                 <Collapsible
                   open={isEvidenceOpen}
@@ -454,7 +454,7 @@ export function VerificationPanel({
                     ))}
                   </CollapsibleContent>
                 </Collapsible>
-              )}
+              )} */}
 
             {/* Explanation */}
             {verificationResult.explanation && (
