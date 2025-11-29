@@ -191,6 +191,126 @@ function normalizeUrl(url: string): string {
 }
 
 // ============================================================================
+// URL REACHABILITY CACHE & HELPERS
+// ============================================================================
+
+interface CacheEntry {
+  ok: boolean;
+  ts: number;
+}
+
+const reachabilityCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function getCachedReachability(url: string): boolean | null {
+  const entry = reachabilityCache.get(url);
+  if (!entry) return null;
+
+  if (Date.now() - entry.ts > CACHE_TTL_MS) {
+    reachabilityCache.delete(url);
+    return null;
+  }
+
+  return entry.ok;
+}
+
+function setCachedReachability(url: string, ok: boolean): void {
+  reachabilityCache.set(url, { ok, ts: Date.now() });
+}
+
+async function isUrlReachable(url: string): Promise<boolean> {
+  // Check cache first
+  const cached = getCachedReachability(url);
+  if (cached !== null) {
+    return cached;
+  }
+
+  try {
+    // Try HEAD request first
+    try {
+      const headResponse = await fetch(url, {
+        method: "HEAD",
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; ClaimVerifier/1.0)" },
+        signal: AbortSignal.timeout(5000),
+      });
+      const ok = headResponse.ok;
+      setCachedReachability(url, ok);
+      return ok;
+    } catch (headError) {
+      // Some servers reject HEAD; try Range GET
+      try {
+        const rangeResponse = await fetch(url, {
+          method: "GET",
+          headers: {
+            "User-Agent": "Mozilla/5.0 (compatible; ClaimVerifier/1.0)",
+            Range: "bytes=0-1", // Request only 2 bytes
+          },
+          signal: AbortSignal.timeout(5000),
+        });
+        // 206 (Partial Content) or 200 (OK) both indicate reachability
+        const ok = rangeResponse.ok || rangeResponse.status === 206;
+        setCachedReachability(url, ok);
+        return ok;
+      } catch (rangeError) {
+        // Fall back to standard GET
+        try {
+          const getResponse = await fetch(url, {
+            method: "GET",
+            headers: { "User-Agent": "Mozilla/5.0 (compatible; ClaimVerifier/1.0)" },
+            signal: AbortSignal.timeout(5000),
+          });
+          const ok = getResponse.ok;
+          setCachedReachability(url, ok);
+          return ok;
+        } catch (getError) {
+          setCachedReachability(url, false);
+          return false;
+        }
+      }
+    }
+  } catch (error) {
+    console.error("[REACHABLE] Error checking", url, error);
+    setCachedReachability(url, false);
+    return false;
+  }
+}
+
+async function filterReachableUrls(
+  urls: string[],
+  concurrency: number = 5,
+  targetCount: number = 3
+): Promise<{ reachable: string[]; unreachable: string[] }> {
+  const reachable: string[] = [];
+  const unreachable: string[] = [];
+
+  // Process URLs in batches with early-stop
+  for (let i = 0; i < urls.length; i += concurrency) {
+    // Early-stop: if we have enough reachable URLs, stop checking
+    if (reachable.length >= targetCount) {
+      console.log(`[REACHABLE] Early-stop: found ${reachable.length} reachable URLs`);
+      unreachable.push(...urls.slice(i));
+      break;
+    }
+
+    const batch = urls.slice(i, i + concurrency);
+    const results = await Promise.allSettled(
+      batch.map((url) => isUrlReachable(url))
+    );
+
+    results.forEach((result, idx) => {
+      const url = batch[idx];
+      if (result.status === "fulfilled" && result.value) {
+        reachable.push(url);
+      } else {
+        unreachable.push(url);
+      }
+    });
+  }
+
+  return { reachable, unreachable };
+}
+
+// ============================================================================
 // CATEGORY CLASSIFICATION
 // ============================================================================
 
@@ -693,6 +813,35 @@ async function verifyImageIfPresent(
 }
 
 // ============================================================================
+// EVIDENCE DEDUPLICATION
+// ============================================================================
+
+function dedupeEvidence(evidence: EvidenceItem[]): EvidenceItem[] {
+  const urlMap = new Map<string, EvidenceItem>();
+
+  for (const item of evidence) {
+    const normUrl = normalizeUrl(item.url);
+    const existing = urlMap.get(normUrl);
+
+    if (existing) {
+      // If stances conflict, set to neutral and reduce confidence
+      if (existing.stance !== item.stance && existing.stance !== "neutral" && item.stance !== "neutral") {
+        existing.stance = "neutral";
+        existing.confidence = Math.max(existing.confidence, item.confidence) * 0.7;
+      } else if (item.stance !== "neutral") {
+        existing.stance = item.stance;
+      }
+      // Keep the higher confidence
+      existing.confidence = Math.max(existing.confidence, item.confidence);
+    } else {
+      urlMap.set(normUrl, { ...item, url: normUrl });
+    }
+  }
+
+  return Array.from(urlMap.values());
+}
+
+// ============================================================================
 // MAIN VERIFICATION PIPELINE
 // ============================================================================
 
@@ -746,12 +895,22 @@ export async function verifyClaim(
   const searchUrls = await searchDuckDuckGo(searchQuery, sources.slice(0, 5));
   console.log("[VERIFY] Found URLs:", searchUrls.length);
 
-  // Step 5: Fetch content from top URLs
+  // Step 4.5: Filter for reachable URLs with early-stop at 3 reachable sources
+  onProgress?.("reachability", "Checking URL reachability...");
+  const { reachable: reachableUrls, unreachable: unreachableUrls } =
+    await filterReachableUrls(searchUrls.slice(0, 8), 5, 3);
+  console.log("[VERIFY] Reachable URLs:", reachableUrls.length, "Unreachable:", unreachableUrls.length);
+
+  // Track unreachable candidates for penalty calculation
+  const candidateUrlCount = searchUrls.length;
+  const unreachableCount = unreachableUrls.length;
+
+  // Step 5: Fetch content from reachable URLs
   onProgress?.(
     "fetch",
-    `Fetching content from top ${Math.min(searchUrls.length, 8)} articles...`
+    `Fetching content from ${Math.min(reachableUrls.length, 8)} reachable articles...`
   );
-  const contentMap = await fetchMultipleUrls(searchUrls.slice(0, 8));
+  const contentMap = await fetchMultipleUrls(reachableUrls.slice(0, 8));
   console.log("[VERIFY] Fetched content from:", contentMap.size, "URLs");
 
   // Step 6: Build evidence items
@@ -788,10 +947,28 @@ export async function verifyClaim(
 
   console.log(`[VERIFY] Collected ${evidence.length} news articles`);
 
-  if (evidence.length === 0) {
-    console.log("[VERIFY] No articles fetched, adding search page references");
+  // Step 6.5: Deduplicate evidence
+  const dedupedEvidence = dedupeEvidence(evidence);
+  console.log(`[VERIFY] After dedup: ${dedupedEvidence.length} evidence items`);
+
+  // Step 6.75: Strict post-filter to ensure all evidence URLs are reachable
+  const finalEvidence = dedupedEvidence.filter((ev) => {
+    // Search page references are always allowed
+    if (ev.url.includes("/search?")) {
+      return true;
+    }
+    // Check if URL is in reachable list
+    return reachableUrls.some((rUrl) => normalizeUrl(rUrl) === normalizeUrl(ev.url));
+  });
+
+  console.log(`[VERIFY] After strict post-filter: ${finalEvidence.length} reachable evidence items`);
+
+  // If no reachable evidence remains, use fallback search references
+  let evidenceToUse = finalEvidence;
+  if (finalEvidence.length === 0) {
+    console.log("[VERIFY] No reachable articles found, adding search page references");
     for (const source of sources.slice(0, 4)) {
-      evidence.push({
+      finalEvidence.push({
         url: `https://www.${source}/search?q=${encodeURIComponent(
           searchQuery
         )}`,
@@ -801,16 +978,31 @@ export async function verifyClaim(
         confidence: 0.3,
       });
     }
+    evidenceToUse = finalEvidence;
   }
 
-  evidence.sort((a, b) => b.confidence - a.confidence);
+  evidenceToUse.sort((a, b) => b.confidence - a.confidence);
+
+  // Calculate penalty for unreachable candidate URLs
+  let unreachabilityPenalty = 0;
+  if (candidateUrlCount > 0) {
+    const invalidFraction = unreachableCount / candidateUrlCount;
+    unreachabilityPenalty = Math.min(0.6, invalidFraction * 0.8);
+    console.log(`[VERIFY] Unreachability penalty: ${unreachabilityPenalty.toFixed(3)} (${unreachableCount}/${candidateUrlCount} URLs unreachable)`);
+  }
 
   // Step 7: Generate verdict using LLM
   onProgress?.("verdict", "Analyzing articles and generating verdict...");
   const { score, verdict, explanation } = await generateVerdict(
     claim.text,
-    evidence.slice(0, 5)
+    evidenceToUse.slice(0, 5)
   );
+
+  // Apply penalty to authenticity score
+  const adjustedScore = Math.max(0.01, Math.min(0.99, score * (1 - unreachabilityPenalty)));
+  const finalExplanation = unreachabilityPenalty > 0
+    ? `${explanation} [Note: ${unreachableCount} candidate URL(s) were unreachable and excluded from evidence.]`
+    : explanation;
 
   // Step 8: Build graph
   onProgress?.("graph", "Building evidence graph...");
@@ -822,7 +1014,7 @@ export async function verifyClaim(
     edges: [{ source: "claim", target: "category", relation: "classified_as" }],
   };
 
-  evidence.slice(0, 5).forEach((ev, i) => {
+  evidenceToUse.slice(0, 5).forEach((ev, i) => {
     const nodeId = `ev_${i}`;
 
     let domain = "source";
@@ -857,11 +1049,11 @@ export async function verifyClaim(
   );
 
   return {
-    authenticity_score: score,
+    authenticity_score: adjustedScore,
     verdict: verdict as any,
-    evidence: evidence.slice(0, 5),
+    evidence: evidenceToUse.slice(0, 5),
     graph,
-    explanation,
+    explanation: finalExplanation,
     category,
     image_verification: imageVerification || undefined,
   };

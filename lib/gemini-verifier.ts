@@ -176,6 +176,120 @@ function mapVerdictToFormat(geminiVerdict: string): {
 }
 
 // ============================================================================
+// URL REACHABILITY CACHE & HELPERS
+// ============================================================================
+
+interface CacheEntry {
+  ok: boolean;
+  ts: number;
+}
+
+const reachabilityCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function getCachedReachability(url: string): boolean | null {
+  const entry = reachabilityCache.get(url);
+  if (!entry) return null;
+
+  if (Date.now() - entry.ts > CACHE_TTL_MS) {
+    reachabilityCache.delete(url);
+    return null;
+  }
+
+  return entry.ok;
+}
+
+function setCachedReachability(url: string, ok: boolean): void {
+  reachabilityCache.set(url, { ok, ts: Date.now() });
+}
+
+async function isUrlReachableLocal(url: string): Promise<boolean> {
+  // Check cache first
+  const cached = getCachedReachability(url);
+  if (cached !== null) {
+    return cached;
+  }
+
+  try {
+    // Try HEAD request first
+    try {
+      const headResponse = await fetch(url, {
+        method: "HEAD",
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; ClaimVerifier/1.0)" },
+        signal: AbortSignal.timeout(5000),
+      });
+      const ok = headResponse.ok;
+      setCachedReachability(url, ok);
+      return ok;
+    } catch (headError) {
+      // Some servers reject HEAD; try Range GET
+      try {
+        const rangeResponse = await fetch(url, {
+          method: "GET",
+          headers: {
+            "User-Agent": "Mozilla/5.0 (compatible; ClaimVerifier/1.0)",
+            Range: "bytes=0-1", // Request only 2 bytes
+          },
+          signal: AbortSignal.timeout(5000),
+        });
+        // 206 (Partial Content) or 200 (OK) both indicate reachability
+        const ok = rangeResponse.ok || rangeResponse.status === 206;
+        setCachedReachability(url, ok);
+        return ok;
+      } catch (rangeError) {
+        // Fall back to standard GET
+        try {
+          const getResponse = await fetch(url, {
+            method: "GET",
+            headers: { "User-Agent": "Mozilla/5.0 (compatible; ClaimVerifier/1.0)" },
+            signal: AbortSignal.timeout(5000),
+          });
+          const ok = getResponse.ok;
+          setCachedReachability(url, ok);
+          return ok;
+        } catch (getError) {
+          setCachedReachability(url, false);
+          return false;
+        }
+      }
+    }
+  } catch (error) {
+    console.error("[GEMINI-REACHABLE] Error checking", url, error);
+    setCachedReachability(url, false);
+    return false;
+  }
+}
+
+function dedupeEvidenceGemini(evidence: EvidenceItem[]): EvidenceItem[] {
+  const urlMap = new Map<string, EvidenceItem>();
+
+  for (const item of evidence) {
+    let normUrl = item.url;
+    try {
+      normUrl = new URL(item.url).href;
+    } catch {}
+
+    const existing = urlMap.get(normUrl);
+
+    if (existing) {
+      // If stances conflict, set to neutral and reduce confidence
+      if (existing.stance !== item.stance && existing.stance !== "neutral" && item.stance !== "neutral") {
+        existing.stance = "neutral";
+        existing.confidence = Math.max(existing.confidence, item.confidence) * 0.7;
+      } else if (item.stance !== "neutral") {
+        existing.stance = item.stance;
+      }
+      // Keep the higher confidence
+      existing.confidence = Math.max(existing.confidence, item.confidence);
+    } else {
+      urlMap.set(normUrl, { ...item, url: normUrl });
+    }
+  }
+
+  return Array.from(urlMap.values());
+}
+
+// ============================================================================
 // EXPONENTIAL BACKOFF
 // ============================================================================
 
@@ -493,7 +607,7 @@ Find 5-10 reputable sources and categorize them as supporting or refuting. Be th
         });
 
         // Transform Gemini response to our format
-        const evidence: EvidenceItem[] = [];
+        let evidence: EvidenceItem[] = [];
 
         // Add supporting sources
         if (geminiResult.supportingSources) {
@@ -521,6 +635,53 @@ Find 5-10 reputable sources and categorize them as supporting or refuting. Be th
           }
         }
 
+        // Deduplicate evidence
+        evidence = dedupeEvidenceGemini(evidence);
+        console.log(`[GEMINI-VERIFY] After dedup: ${evidence.length} evidence items`);
+
+        // Strict reachability filtering: check each URL and remove unreachable ones
+        onProgress?.("reachability", "Checking URL reachability...");
+        const reachableEvidence: EvidenceItem[] = [];
+
+        for (const item of evidence) {
+          const isReachable = await isUrlReachableLocal(item.url);
+          if (isReachable) {
+            reachableEvidence.push(item);
+            console.log(`[GEMINI-VERIFY] ✓ Reachable: ${item.url}`);
+          } else {
+            console.log(`[GEMINI-VERIFY] ✗ Unreachable: ${item.url}`);
+          }
+        }
+
+        console.log(`[GEMINI-VERIFY] After reachability filter: ${reachableEvidence.length} reachable evidence items`);
+
+        // If no reachable evidence, return uncertain verdict
+        if (reachableEvidence.length === 0) {
+          console.warn("[GEMINI-VERIFY] No reachable evidence sources found, returning uncertain verdict");
+          return {
+            authenticity_score: 0.5,
+            verdict: "uncertain",
+            evidence: [],
+            graph: {
+              nodes: [
+                {
+                  id: "claim",
+                  label: claim.text.slice(0, 100) + "...",
+                  type: "claim",
+                },
+                {
+                  id: "error",
+                  label: "No reachable evidence found",
+                  type: "category"
+                },
+              ],
+              edges: [],
+            },
+            explanation: "Fact-checking could not be completed: no reachable evidence sources were found. The provided sources may be inaccessible or have been removed.",
+            category: geminiResult.category || "general",
+          };
+        }
+
         // Map verdict
         const { verdict, score } = mapVerdictToFormat(geminiResult.verdict);
 
@@ -544,7 +705,7 @@ Find 5-10 reputable sources and categorize them as supporting or refuting. Be th
         };
 
         // Add evidence nodes
-        evidence.forEach((ev, i) => {
+        reachableEvidence.forEach((ev, i) => {
           const nodeId = `ev_${i}`;
           let domain = "source";
           try {
@@ -577,7 +738,7 @@ Find 5-10 reputable sources and categorize them as supporting or refuting. Be th
         return {
           authenticity_score: score,
           verdict: verdict as any,
-          evidence: evidence.slice(0, 10), // Top 10 sources
+          evidence: reachableEvidence.slice(0, 10), // Top 10 sources (all reachable)
           graph,
           explanation: geminiResult.summary || "Analysis complete.",
           category: geminiResult.category || "general",
