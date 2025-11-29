@@ -283,15 +283,8 @@ async function filterReachableUrls(
   const reachable: string[] = [];
   const unreachable: string[] = [];
 
-  // Process URLs in batches with early-stop
+  // Process all URLs in batches
   for (let i = 0; i < urls.length; i += concurrency) {
-    // Early-stop: if we have enough reachable URLs, stop checking
-    if (reachable.length >= targetCount) {
-      console.log(`[REACHABLE] Early-stop: found ${reachable.length} reachable URLs`);
-      unreachable.push(...urls.slice(i));
-      break;
-    }
-
     const batch = urls.slice(i, i + concurrency);
     const results = await Promise.allSettled(
       batch.map((url) => isUrlReachable(url))
