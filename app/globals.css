@@ -186,3 +186,35 @@
     box-shadow: 0 4px 24px -4px var(--accent);
   }
 }
+
+/* Accessible Skip Link */
+.skip-link {
+  position: fixed;
+  z-index: 10000;
+
+  padding: 0.75rem 1rem;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-weight: 600;
+  text-decoration: none;
+  border: 2px solid hsl(var(--primary-foreground));
+  border-radius: 0 0 0.5rem 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+  display: inline-block;
+  font-size: 1rem;
+
+  /* Hidden off-screen by default */
+  top: -100px;
+  left: 0;
+  transition: top 0.2s ease;
+}
+
+/* When keyboard-focus reaches it, slide down into view */
+.skip-link:focus,
+.skip-link:focus-visible {
+  top: 0;
+  left: 0;
+  outline: 3px solid hsl(var(--primary-foreground));
+  outline-offset: 2px;
+}
