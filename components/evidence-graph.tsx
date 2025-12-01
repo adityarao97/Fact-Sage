@@ -23,6 +23,7 @@ export function EvidenceGraph({ graph, onNodeClick }: EvidenceGraphProps) {
 
     const g = svg.append("g")
 
+    // Arrow markers for edges
     svg
       .append("defs")
       .selectAll("marker")
@@ -47,23 +48,23 @@ export function EvidenceGraph({ graph, onNodeClick }: EvidenceGraphProps) {
       switch (type) {
         case "claim":
           return "#6366f1"
-        case "support":
-          return "#10b981"
-        case "refute":
-          return "#ef4444"
-        case "neutral":
-          return "#6b7280"
+        case "search":
+          return "#0ea5e9"
+        case "evidence":
+          return "#22c55e"
+        case "category":
+          return "#f97316"
         default:
           return "#6b7280"
       }
     }
 
     const simulation = d3
-      .forceSimulation(graph.nodes as d3.SimulationNodeDatum[])
+      .forceSimulation(graph.nodes as any)
       .force(
         "link",
         d3
-          .forceLink(graph.edges)
+          .forceLink(graph.edges as any)
           .id((d: any) => d.id)
           .distance(120),
       )
@@ -76,45 +77,67 @@ export function EvidenceGraph({ graph, onNodeClick }: EvidenceGraphProps) {
       .selectAll("line")
       .data(graph.edges)
       .join("line")
-      .attr("stroke", (d) => {
-        if (d.stance === "support") return "#10b981"
-        if (d.stance === "refute") return "#ef4444"
+      .attr("stroke", (d: any) => {
+        const relation = d.relation?.toLowerCase?.() ?? ""
+        if (relation.includes("support")) return "#10b981"
+        if (relation.includes("refute") || relation.includes("contradict")) return "#ef4444"
         return "#6b7280"
       })
-      .attr("stroke-width", (d) => Math.max(2, d.weight * 4))
+      .attr("stroke-width", 2)
       .attr("stroke-opacity", 0.5)
-      .attr("marker-end", (d) => `url(#arrow-${d.stance})`)
+      .attr("marker-end", (d: any) => {
+        const relation = d.relation?.toLowerCase?.() ?? ""
+        if (relation.includes("support")) return "url(#arrow-support)"
+        if (relation.includes("refute") || relation.includes("contradict")) return "url(#arrow-refute)"
+        return "url(#arrow-neutral)"
+      })
 
     const node = g
       .append("g")
       .selectAll("circle")
       .data(graph.nodes)
       .join("circle")
-      .attr("r", (d) => (d.type === "claim" ? 14 : 10))
-      .attr("fill", (d) => getNodeColor(d.type))
+      .attr("r", (d: any) => (d.type === "claim" ? 14 : 10))
+      .attr("fill", (d: any) => getNodeColor(d.type))
       .attr("stroke", "#1e293b")
       .attr("stroke-width", 3)
-      .attr("cursor", (d) => (d.url ? "pointer" : "default"))
+      .attr("cursor", (d: any) => (d.url ? "pointer" : "default"))
+      // 🔑 Make nodes keyboard-focusable + screen-reader friendly
+      .attr("tabindex", 0)
+      .attr("role", "button")
+      .attr(
+        "aria-label",
+        (d: any) =>
+          d.type === "claim"
+            ? `Claim node: ${d.label}`
+            : `Evidence node: ${d.label}${d.relation ? `, relation: ${d.relation}` : ""}`,
+      )
       .style("filter", "drop-shadow(0 0 8px currentColor)")
-      .call(d3.drag<SVGCircleElement, any>().on("start", dragstarted).on("drag", dragged).on("end", dragended) as any)
+      .call(
+        d3
+          .drag<SVGCircleElement, any>()
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended) as any,
+      )
 
     const label = g
       .append("g")
       .selectAll("text")
       .data(graph.nodes)
       .join("text")
-      .text((d) => d.label)
-      .attr("font-size", 11)
-      .attr("font-weight", 500)
-      .attr("dx", 18)
-      .attr("dy", 4)
-      .attr("fill", "#e2e8f0")
+      .text((d: any) => d.label)
+      .attr("font-size", 12)
+      .attr("fill", "#e5e7eb")
+      .attr("text-anchor", "middle")
+      .attr("dy", (d: any) => (d.type === "claim" ? -20 : -16))
       .style("pointer-events", "none")
-      .style("text-shadow", "0 1px 3px rgba(0,0,0,0.8)")
 
+    // Tooltip (visual only, hidden from screen readers)
     const tooltip = d3
       .select("body")
       .append("div")
+      .attr("aria-hidden", "true")
       .style("position", "absolute")
       .style("visibility", "hidden")
       .style("background-color", "rgba(15, 23, 42, 0.95)")
@@ -128,35 +151,60 @@ export function EvidenceGraph({ graph, onNodeClick }: EvidenceGraphProps) {
       .style("backdrop-filter", "blur(8px)")
 
     node
-      .on("mouseover", (event, d: any) => {
-        tooltip.style("visibility", "visible").html(`
-          <div style="font-weight: 600; margin-bottom: 4px;">${d.label}</div>
-          <div style="color: #94a3b8; font-size: 12px;">Type: ${d.type}</div>
-          ${d.confidence ? `<div style="color: #94a3b8; font-size: 12px;">Confidence: ${Math.round(d.confidence * 100)}%</div>` : ""}
-        `)
+      .on("mouseover", (event: any, d: any) => {
+        tooltip
+          .style("visibility", "visible")
+          .html(
+            `
+            <div style="font-weight: 600; margin-bottom: 4px;">${d.label}</div>
+            <div style="color: #94a3b8; font-size: 12px;">Type: ${d.type}</div>
+            ${
+              d.confidence != null
+                ? `<div style="color: #94a3b8; font-size: 12px;">Confidence: ${Math.round(
+                    d.confidence * 100,
+                  )}%</div>`
+                : ""
+            }
+          `,
+          )
       })
-      .on("mousemove", (event) => {
-        tooltip.style("top", event.pageY - 10 + "px").style("left", event.pageX + 10 + "px")
+      .on("mousemove", (event: any) => {
+        tooltip
+          .style("top", `${event.pageY - 10}px`)
+          .style("left", `${event.pageX + 10}px`)
       })
       .on("mouseout", () => {
         tooltip.style("visibility", "hidden")
       })
-      .on("click", (event, d: any) => {
+      .on("click", (event: any, d: any) => {
         if (d.url && onNodeClick) {
           onNodeClick(d.id, d.url)
+        }
+      })
+      // Keyboard activation (Enter / Space)
+      .on("keydown", (event: any, d: any) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault()
+          if (d.url && onNodeClick) {
+            onNodeClick(d.id, d.url)
+          }
         }
       })
 
     simulation.on("tick", () => {
       link
-        .attr("x1", (d: any) => d.source.x)
-        .attr("y1", (d: any) => d.source.y)
-        .attr("x2", (d: any) => d.target.x)
-        .attr("y2", (d: any) => d.target.y)
+        .attr("x1", (d: any) => (d.source as any).x)
+        .attr("y1", (d: any) => (d.source as any).y)
+        .attr("x2", (d: any) => (d.target as any).x)
+        .attr("y2", (d: any) => (d.target as any).y)
 
-      node.attr("cx", (d: any) => d.x).attr("cy", (d: any) => d.y)
+      node
+        .attr("cx", (d: any) => d.x as number)
+        .attr("cy", (d: any) => d.y as number)
 
-      label.attr("x", (d: any) => d.x).attr("y", (d: any) => d.y)
+      label
+        .attr("x", (d: any) => d.x as number)
+        .attr("y", (d: any) => (d.y as number) - (d.type === "claim" ? 20 : 16))
     })
 
     function dragstarted(event: any) {
@@ -178,9 +226,9 @@ export function EvidenceGraph({ graph, onNodeClick }: EvidenceGraphProps) {
 
     const zoom = d3
       .zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.5, 3])
+      .scaleExtent([0.5, 2])
       .on("zoom", (event) => {
-        g.attr("transform", event.transform)
+        g.attr("transform", event.transform.toString())
       })
 
     svg.call(zoom as any)
@@ -193,7 +241,12 @@ export function EvidenceGraph({ graph, onNodeClick }: EvidenceGraphProps) {
 
   return (
     <div className="w-full h-[400px] rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden">
-      <svg ref={svgRef} className="w-full h-full" />
+      <svg
+        ref={svgRef}
+        className="w-full h-full"
+        role="img"
+        aria-label="Visual relationship graph between the claim and supporting or refuting evidence sources"
+      />
     </div>
   )
 }
