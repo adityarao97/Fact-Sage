@@ -7,6 +7,14 @@ import Tooltip from "@mui/material/Tooltip"
 import LinearProgress from "@mui/material/LinearProgress"
 import { FileText, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,33 +23,57 @@ import { ingestDocument } from "@/lib/api"
 import { extractClaims } from "@/lib/claim-extractor"
 import { fileToBase64, validateFileSize, formatFileSize, sanitizeUrl } from "@/lib/utils"
 import type { IngestResponse } from "@/lib/types"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
 
+// ------------------------
+// ZOD SCHEMA + FORM TYPE
+// ------------------------
+const TextIngestSchema = z.object({
+  text: z
+    .string()
+    .trim()
+    .min(1, "Please enter some text to analyze")
+    .max(4000, "Text is too long, please shorten it."),
+  pdfUrl: z.string().trim().optional().or(z.literal("")),
+})
+
+type TextIngestValues = z.infer<typeof TextIngestSchema>
+
+// ------------------------
+// COMPONENT
+// ------------------------
 interface TextInputProps {
   onResult: (result: IngestResponse) => void
 }
 
 export function TextInput({ onResult }: TextInputProps) {
-  const [text, setText] = useState("")
-  const [pdfUrl, setPdfUrl] = useState("")
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [progress, setProgress] = useState<string>("")
   const { toast } = useToast()
 
-  const handleTextSubmit = async () => {
-    if (!text.trim()) {
-      toast({
-        title: "Empty Input",
-        description: "Please enter some text to analyze",
-        variant: "destructive",
-      })
-      return
-    }
+  // ------------------------
+  // INIT REACT-HOOK-FORM
+  // ------------------------
+  const form = useForm<TextIngestValues>({
+    resolver: zodResolver(TextIngestSchema),
+    defaultValues: {
+      text: "",
+      pdfUrl: "",
+    },
+    mode: "onChange",
+  })
+
+  const watchedText = form.watch("text")
+
+  const handleTextSubmit = async (values: TextIngestValues) => {
+    const text = values.text.trim()
 
     setIsLoading(true)
     setProgress("Initializing AI model...")
 
-    // toast for on-device model loading
     toast({
       title: "Loading on-device model",
       description: "This may take a moment the first time. Everything runs in your browser.",
@@ -54,7 +86,7 @@ export function TextInput({ onResult }: TextInputProps) {
       // Create the result object
       const result: IngestResponse = {
         raw_text: text,
-        claims: claims,
+        claims,
       }
 
       onResult(result)
@@ -76,15 +108,14 @@ export function TextInput({ onResult }: TextInputProps) {
   }
 
   const handlePdfSubmit = async () => {
+    const pdfUrl = form.getValues("pdfUrl")?.trim()
     setIsLoading(true)
     try {
       let result: IngestResponse
 
       if (pdfFile) {
-        // Validate file
-        if (!validateFileSize(pdfFile)) {
+        if (!validateFileSize(pdfFile))
           throw new Error("File must be less than 10MB")
-        }
         const base64 = await fileToBase64(pdfFile)
         result = await ingestDocument({ pdf_b64: base64 })
       } else if (pdfUrl) {
@@ -124,7 +155,7 @@ export function TextInput({ onResult }: TextInputProps) {
     }
 
     setPdfFile(file)
-    setPdfUrl("") // Clear URL if file is selected
+    form.setValue("pdfUrl", "")
   }
 
   const handleDrop = (e: React.DragEvent) => {
@@ -132,7 +163,7 @@ export function TextInput({ onResult }: TextInputProps) {
     const file = e.dataTransfer.files[0]
     if (file && file.type === "application/pdf") {
       setPdfFile(file)
-      setPdfUrl("")
+      form.setValue("pdfUrl", "")
     } else {
       toast({
         title: "Invalid File",
@@ -142,147 +173,190 @@ export function TextInput({ onResult }: TextInputProps) {
     }
   }
 
+  // ------------------------
+  // JSX
+  // ------------------------
   return (
-    <div className="space-y-6">
-      {/* Text Input */}
-      <div className="space-y-2">
-        {/* Label + on-device AI tooltip pill */}
-        <div className="flex items-center justify-between">
-          <Label htmlFor="text-input">Enter Text</Label>
-
-          <Tooltip title="Claim extraction runs in your browser using an on-device model. No text is sent to the server for this step.">
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-[11px] font-medium text-purple-700 shadow-sm dark:border-purple-500/40 dark:bg-purple-500/10 dark:text-purple-100"
-            >
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-              On-device AI
-            </button>
-          </Tooltip>
-        </div>
-
-        <Textarea
-          id="text-input"
-          placeholder="Enter text to extract claims from..."
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={6}
-          disabled={isLoading}
-        />
-        {progress && <div className="text-sm text-muted-foreground">{progress}</div>}
-        <Button onClick={handleTextSubmit} disabled={isLoading || !text.trim()} className="w-full">
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {progress || "Processing..."}
-            </>
-          ) : (
-            <>
-              <FileText className="mr-2 h-4 w-4" />
-              Extract Claims
-            </>
-          )}
-        </Button>
-
-        {/* Loader bar (purple gradient) while isLoading is true */}
-        {isLoading && (
-          <div className="mt-1">
-            <LinearProgress
-              sx={{
-                "&.MuiLinearProgress-root": {
-                  backgroundColor: "rgba(147, 51, 234, 0.18)", // subtle purple track
-                  borderRadius: 9999,
-                  height: 6,
-                },
-                "& .MuiLinearProgress-bar": {
-                  backgroundImage: "linear-gradient(to right, #a855f7, #7c3aed)", // purple → deeper purple
-                  borderRadius: 9999,
-                },
-              }}
-            />
-          </div>
-        )}
-      </div>
-
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">Or upload PDF</span>
-        </div>
-      </div>
-
-      {/* PDF Upload */}
-      <div className="space-y-4">
-        <div
-          className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors"
-          onDrop={handleDrop}
-          onDragOver={(e) => e.preventDefault()}
-        >
-          <Input
-            id="pdf-upload"
-            type="file"
-            accept=".pdf"
-            onChange={handleFileChange}
-            disabled={isLoading}
-            className="hidden"
-          />
-          <Label htmlFor="pdf-upload" className="cursor-pointer">
-            <div className="flex flex-col items-center gap-2">
-              <FileText className="h-8 w-8 text-muted-foreground" />
-              <div className="text-sm">
-                <span className="font-medium text-primary">Click to upload</span> or drag and drop
-              </div>
-              <div className="text-xs text-muted-foreground">PDF files up to 10MB</div>
-            </div>
-          </Label>
-        </div>
-
-        {pdfFile && (
-          <div className="flex items-center gap-2 p-2 bg-muted rounded text-sm">
-            <FileText className="h-4 w-4" />
-            <span className="flex-1 truncate">{pdfFile.name}</span>
-            <span className="text-muted-foreground">{formatFileSize(pdfFile.size)}</span>
-          </div>
-        )}
-
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit(handleTextSubmit)}
+        className="space-y-6"
+      >
+        {/* TEXT INPUT */}
         <div className="space-y-2">
-          <Label htmlFor="pdf-url">Or enter PDF URL</Label>
-          <div className="flex gap-2">
-            <Input
-              id="pdf-url"
-              type="url"
-              placeholder="https://example.com/document.pdf"
-              value={pdfUrl}
-              onChange={(e) => {
-                setPdfUrl(e.target.value)
-                setPdfFile(null) // Clear file if URL is entered
-              }}
-              disabled={isLoading}
-            />
+          <div className="flex items-center justify-between">
+            <FormLabel htmlFor="text-input">Enter Text</FormLabel>
+
+            <Tooltip title="Claim extraction runs in your browser using an on-device model. No text is sent to the server for this step.">
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-[11px] font-medium text-purple-700 shadow-sm dark:border-purple-500/40 dark:bg-purple-500/10 dark:text-purple-100"
+              >
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                On-device AI
+              </button>
+            </Tooltip>
+          </div>
+
+          {/* RHF FIELD: TEXTAREA */}
+          <FormField
+            control={form.control}
+            name="text"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Textarea
+                    id="text-input"
+                    placeholder="Enter text to extract claims from..."
+                    rows={6}
+                    disabled={isLoading}
+                    {...field}
+                  />
+                </FormControl>
+
+                {progress && (
+                  <div className="text-sm text-muted-foreground">
+                    {progress}
+                  </div>
+                )}
+
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* SUBMIT BUTTON */}
+          <Button
+            type="submit"
+            disabled={isLoading || !watchedText.trim()}
+            className="w-full"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {progress || "Processing..."}
+              </>
+            ) : (
+              <>
+                <FileText className="mr-2 h-4 w-4" />
+                Extract Claims
+              </>
+            )}
+          </Button>
+
+          {/* LOADING PROGRESS BAR */}
+          {isLoading && (
+            <div className="mt-1">
+              <LinearProgress
+                sx={{
+                  "&.MuiLinearProgress-root": {
+                    backgroundColor: "rgba(147, 51, 234, 0.18)",
+                    borderRadius: 9999,
+                    height: 6,
+                  },
+                  "& .MuiLinearProgress-bar": {
+                    backgroundImage:
+                      "linear-gradient(to right, #a855f7, #7c3aed)",
+                    borderRadius: 9999,
+                  },
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* DIVIDER */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Or upload PDF
+            </span>
           </div>
         </div>
 
-        <Button
-          onClick={handlePdfSubmit}
-          disabled={isLoading || (!pdfFile && !pdfUrl)}
-          className="w-full"
-          variant="secondary"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processing PDF...
-            </>
-          ) : (
-            <>
-              <FileText className="mr-2 h-4 w-4" />
-              Extract from PDF
-            </>
+        {/* PDF UPLOAD */}
+        <div className="space-y-4">
+          <div
+            className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors"
+            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
+          >
+            <Input
+              id="pdf-upload"
+              type="file"
+              accept=".pdf"
+              onChange={handleFileChange}
+              disabled={isLoading}
+              className="hidden"
+            />
+            <Label htmlFor="pdf-upload" className="cursor-pointer">
+              <div className="flex flex-col items-center gap-2">
+                <FileText className="h-8 w-8 text-muted-foreground" />
+                <div className="text-sm">
+                  <span className="font-medium text-primary">Click to upload</span> or drag and drop
+                </div>
+                <div className="text-xs text-muted-foreground">PDF files up to 10MB</div>
+              </div>
+            </Label>
+          </div>
+
+          {pdfFile && (
+            <div className="flex items-center gap-2 p-2 bg-muted rounded text-sm">
+              <FileText className="h-4 w-4" />
+              <span className="flex-1 truncate">{pdfFile.name}</span>
+              <span className="text-muted-foreground">{formatFileSize(pdfFile.size)}</span>
+            </div>
           )}
-        </Button>
-      </div>
-    </div>
+
+          {/* RHF FIELD: PDF URL */}
+          <FormField
+            control={form.control}
+            name="pdfUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel htmlFor="pdf-url">Or enter PDF URL</FormLabel>
+                <FormControl>
+                  <Input
+                    id="pdf-url"
+                    type="url"
+                    placeholder="https://example.com/document.pdf"
+                    disabled={isLoading}
+                    {...field}
+                    onChange={(e) => {
+                      field.onChange(e)
+                      setPdfFile(null)
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* PDF SUBMIT BUTTON */}
+          <Button
+            onClick={handlePdfSubmit}
+            disabled={isLoading || (!pdfFile && !form.getValues("pdfUrl"))}
+            className="w-full"
+            variant="secondary"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing PDF...
+              </>
+            ) : (
+              <>
+                <FileText className="mr-2 h-4 w-4" />
+                Extract from PDF
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
+    </Form>
   )
 }
