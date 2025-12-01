@@ -183,6 +183,14 @@ export function VerificationPanel({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Screen reader status for verification */}
+        <div className="sr-only" aria-live="polite">
+          {isVerifying
+            ? "Verifying selected claims..."
+            : verificationResult
+            ? "Verification complete."
+            : ""}
+        </div>
         {/* Raw Text */}
         <Collapsible open={isRawTextOpen} onOpenChange={setIsRawTextOpen}>
           <CollapsibleTrigger asChild>
