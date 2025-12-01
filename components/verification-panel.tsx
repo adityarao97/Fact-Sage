@@ -25,6 +25,7 @@ import type {
 } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { ScoreGauge } from "@/components/score-gauge";
+import { SupportRefuteChart } from "./support-refute-chart";
 
 interface VerificationPanelProps {
   rawText: string;
@@ -353,6 +354,11 @@ export function VerificationPanel({
                 </div>
               </div>
             </div>
+
+            {/* Support vs Refute chart */}
+            {totalSources > 0 && (
+              <SupportRefuteChart support={supportingCount} refute={refutingCount} neutral={neutralCount} />
+            )}
 
             {/* Explanation */}
             {verificationResult.explanation && (
