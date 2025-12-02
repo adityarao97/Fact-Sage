@@ -3,6 +3,9 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "@/components/ui/toaster"
+import { ThemeProvider } from "@/components/theme-provider";
+import { cn } from "@/lib/utils";
+import { MuiThemeProvider } from "@/components/mui-theme-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -10,7 +13,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "fact-sage - AI Fact Verification",
+  title: "Fact-Sage - AI Fact Verification",
   description: "Verify claims with AI-powered fact checking",
     generator: 'v0.app'
 }
@@ -21,15 +24,25 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="font-sans antialiased">
-        {/* Skip link for keyboard users */}
+    <html lang="en" suppressHydrationWarning>
+      <body className={cn(
+          "min-h-screen bg-background text-foreground font-sans antialiased",
+          inter.className
+        )}
+      >
+        {/* Accessible skip link */}
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
-        <main id="main-content">
-          {children}
-        </main>
+
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <MuiThemeProvider>{children}</MuiThemeProvider>
+        </ThemeProvider>
         <Toaster />
       </body>
     </html>
