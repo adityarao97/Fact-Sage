@@ -15,33 +15,22 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-  ChevronDown,
-  ChevronUp,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  HelpCircle,
-  Copy,
-  Loader2,
-  ExternalLink,
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { ScoreGauge } from "@/components/score-gauge";
+import { ChevronDown, Loader2, ShieldCheck, Globe2, Info } from "lucide-react";
 import { ClaimsList } from "@/components/claims-list";
 import { JsonDownload } from "@/components/json-download";
-import { EvidenceGraph } from "@/components/evidence-graph";
 import type {
   Claim,
   VerifyResponse,
   ImageVerificationResult,
 } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
+import { ScoreGauge } from "@/components/score-gauge";
 
 interface VerificationPanelProps {
   rawText: string;
   claims: Claim[];
   imageVerification?: ImageVerificationResult | null;
-  onVerificationComplete: (result: VerifyResponse) => void;
+  onVerificationComplete: (result: VerifyResponse, primaryClaim: Claim) => void;
 }
 
 export function VerificationPanel({
@@ -74,7 +63,6 @@ export function VerificationPanel({
   const uniqueEntities = new Set(
     claims.flatMap((claim) => claim.entities ?? [])
   );
-  const entityCount = uniqueEntities.size;
 
   const handleVerify = async () => {
     if (selectedClaims.length === 0) {
@@ -87,13 +75,9 @@ export function VerificationPanel({
     }
 
     setIsVerifying(true);
-    try {
-      console.log(
-        "[v0] Starting verification with integrated system for claims:",
-        selectedClaims
-      );
+    setVerificationResult(null);
 
-      // Call the new verification API route
+    try {
       const response = await fetch("/api/verify-claim", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -103,15 +87,38 @@ export function VerificationPanel({
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Verification failed");
+        const contentType = response.headers.get("content-type") || "";
+        let message = `Verification failed (status ${response.status})`;
+
+        try {
+          if (contentType.includes("application/json")) {
+            const errorBody = await response.json();
+            if (typeof errorBody?.error === "string") {
+              message = errorBody.error;
+            } else if (typeof errorBody?.message === "string") {
+              message = errorBody.message;
+            }
+          } else {
+            const text = await response.text();
+            if (text) {
+              message = text.slice(0, 300);
+            }
+          }
+        } catch (parseErr) {
+          console.error(
+            "[v0] Failed to parse error response from /api/verify-claim:",
+            parseErr
+          );
+        }
+
+        throw new Error(message);
       }
 
       const result: VerifyResponse = await response.json();
 
       console.log("[v0] Verification complete:", result);
       setVerificationResult(result);
-      onVerificationComplete(result);
+      onVerificationComplete(result, selectedClaims[0]);
 
       toast({
         title: "Verification Complete",
@@ -130,84 +137,128 @@ export function VerificationPanel({
     }
   };
 
-  const copyExplanation = () => {
-    if (verificationResult?.explanation) {
-      navigator.clipboard.writeText(verificationResult.explanation);
-      toast({
-        title: "Copied",
-        description: "Explanation copied to clipboard",
-      });
-    }
-  };
-
-  const handleNodeClick = (nodeId: string, url?: string) => {
-    if (url) {
-      window.open(url, "_blank", "noopener,noreferrer");
-    }
-  };
-
-  const getVerdictIcon = (verdict: string) => {
+  const getVerdictColor = (verdict: VerifyResponse["verdict"]) => {
     switch (verdict) {
       case "true":
-        return <CheckCircle2 className="h-4 w-4" />;
+        return "bg-emerald-500";
       case "false":
-        return <XCircle className="h-4 w-4" />;
+        return "bg-rose-500";
       case "mixed":
-        return <AlertCircle className="h-4 w-4" />;
+        return "bg-amber-500";
+      case "uncertain":
       default:
-        return <HelpCircle className="h-4 w-4" />;
+        return "bg-slate-500";
     }
   };
 
-  const getVerdictColor = (verdict: string) => {
+  const getVerdictIcon = (verdict: VerifyResponse["verdict"]) => {
     switch (verdict) {
       case "true":
-        return "bg-gradient-to-r from-green-500 to-emerald-500";
+        return <ShieldCheck className="h-4 w-4" />;
       case "false":
-        return "bg-gradient-to-r from-red-500 to-rose-500";
+        return <Globe2 className="h-4 w-4" />;
       case "mixed":
-        return "bg-gradient-to-r from-yellow-500 to-orange-500";
+        return <Info className="h-4 w-4" />;
+      case "uncertain":
       default:
-        return "bg-gradient-to-r from-gray-500 to-slate-500";
+        return <Info className="h-4 w-4" />;
     }
   };
+
+  // Fallback summary text for image verification, since the type doesn't define "summary"
+  const imageSummaryText =
+    imageVerification &&
+    ((imageVerification as any).summary ??
+      (imageVerification as any).description ??
+      (imageVerification as any).reason ??
+      "Image authenticity analysis completed. See details in the logs or backend response.");
 
   return (
-    <Card className="card-gradient border-2 border-primary/10 shadow-xl">
+    <Card className="border-2 border-primary/10 shadow-xl card-gradient">
       <CardHeader>
-        <CardTitle className="text-xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-          Claims & Verification
+        <CardTitle className="text-xl bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+          Verification Panel
         </CardTitle>
         <CardDescription>
-          Select claims to verify and view results
+          Select claims to verify and inspect AI-backed evidence
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Screen reader status for verification */}
-        <div className="sr-only" aria-live="polite">
-          {isVerifying
-            ? "Verifying selected claims..."
-            : verificationResult
-            ? "Verification complete."
-            : ""}
+      <CardContent className="space-y-4">
+        {/* KPI Tiles */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50 p-3 border border-purple-100">
+            <div className="text-[11px] font-medium text-purple-700">
+              Total Claims
+            </div>
+            <div className="text-xl font-semibold text-purple-900">
+              {claims.length}
+            </div>
+            <div className="mt-1 text-[10px] text-purple-600">
+              {uniqueEntities.size} unique entities
+            </div>
+          </div>
+
+          <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 p-3 border border-emerald-100">
+            <div className="text-[11px] font-medium text-emerald-700">
+              Evidence Sources
+            </div>
+            <div className="text-xl font-semibold text-emerald-900">
+              {totalSources}
+            </div>
+            <div className="mt-1 text-[10px] text-emerald-600">
+              {supportingCount} supporting · {refutingCount} refuting
+            </div>
+          </div>
+
+          <div className="rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 p-3 border border-blue-100">
+            <div className="text-[11px] font-medium text-blue-700">
+              Supporting
+            </div>
+            <div className="text-xl font-semibold text-blue-900">
+              {supportingCount}
+            </div>
+            <div className="mt-1 text-[10px] text-blue-600">
+              {neutralCount} neutral
+            </div>
+          </div>
+
+          <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 p-3 border border-slate-200">
+            <div className="text-[11px] font-medium text-slate-700">
+              Image Checks
+            </div>
+            <div className="text-xl font-semibold text-slate-900">
+              {imageVerification ? 1 : 0}
+            </div>
+            <div className="mt-1 text-[10px] text-slate-600">
+              {imageVerification
+                ? "Image authenticity analyzed"
+                : "No image provided"}
+            </div>
+          </div>
         </div>
-        {/* Raw Text */}
+
+        {/* Raw Text Collapsible */}
         <Collapsible open={isRawTextOpen} onOpenChange={setIsRawTextOpen}>
-          <CollapsibleTrigger asChild>
-            <Button
-              variant="ghost"
-              className="w-full justify-between hover:bg-purple-50"
-            >
-              <span className="font-medium">Raw Text</span>
-              {isRawTextOpen ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </Button>
-          </CollapsibleTrigger>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs font-medium text-muted-foreground">
+                Source Text
+              </div>
+              <div className="text-[11px] text-muted-foreground/80">
+                {rawText.length > 120
+                  ? `${rawText.slice(0, 120)}…`
+                  : rawText || "No text available"}
+              </div>
+            </div>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" size="sm" className="text-xs">
+                {isRawTextOpen ? "Hide" : "Show"} full text
+                <ChevronDown className="ml-1 h-3 w-3" />
+              </Button>
+            </CollapsibleTrigger>
+          </div>
           <CollapsibleContent className="mt-2">
-            <div className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg text-sm max-h-40 overflow-y-auto border border-purple-100">
+            <div className="p-4 bg-gradient-to-br from-purple-50 to-white rounded-lg text-sm max-h-40 overflow-y-auto border border-purple-100">
               <p className="whitespace-pre-wrap leading-relaxed">{rawText}</p>
             </div>
           </CollapsibleContent>
@@ -215,7 +266,7 @@ export function VerificationPanel({
 
         {/* Claims List */}
         <ClaimsList
-          key={claims.map((c) => c.text).join("|")} // or a proper hash
+          key={claims.map((c) => c.text).join("|")}
           claims={claims}
           onSelectionChange={setSelectedClaims}
         />
@@ -235,52 +286,38 @@ export function VerificationPanel({
             `Verify Selected Claims (${selectedClaims.length})`
           )}
         </Button>
-        {/* Image Authenticity (from ingest, even before claim verification) */}
+
+        {/* Image Authenticity (if available) */}
         {imageVerification && (
-          <div className="space-y-2 pt-2 border-t border-purple-100">
-            <h3 className="font-semibold">Image Authenticity</h3>
-            <div className="p-4 rounded-lg border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold">
-                    Image Authenticity
-                  </span>
-                  <Badge variant="outline" className="text-xs">
-                    {imageVerification.provider}
-                  </Badge>
-                </div>
-                {imageVerification.is_tampered === null ? (
-                  <Badge className="bg-gradient-to-r from-gray-500 to-slate-500 text-white">
-                    <HelpCircle className="h-3 w-3 mr-1" />
-                    Inconclusive
-                  </Badge>
-                ) : imageVerification.is_tampered ? (
-                  <Badge className="bg-gradient-to-r from-red-500 to-rose-500 text-white">
-                    <XCircle className="h-3 w-3 mr-1" />
-                    Likely manipulated / AI-generated
-                  </Badge>
-                ) : (
-                  <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
-                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                    Likely original
-                  </Badge>
-                )}
+          <div className="p-4 rounded-lg border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold">
+                  Image Authenticity
+                </span>
+                <Badge variant="outline" className="text-xs">
+                  {imageVerification.provider}
+                </Badge>
               </div>
-
-              <div className="text-xs text-muted-foreground">
-                Score:{" "}
-                {imageVerification.tampering_score !== null
-                  ? imageVerification.tampering_score.toFixed(2)
-                  : "N/A"}{" "}
-                (0 = likely real, 1 = likely fake/AI)
-              </div>
-
-              <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
-                {imageVerification.reasons.map((reason, idx) => (
-                  <li key={idx}>{reason}</li>
-                ))}
-              </ul>
+              {imageVerification.is_tampered === null ? (
+                <Badge className="bg-amber-500 text-white text-xs">
+                  Inconclusive
+                </Badge>
+              ) : imageVerification.is_tampered ? (
+                <Badge className="bg-rose-500 text-white text-xs">
+                  Possible Tampering
+                </Badge>
+              ) : (
+                <Badge className="bg-emerald-500 text-white text-xs">
+                  No Tampering Detected
+                </Badge>
+              )}
             </div>
+            {imageSummaryText && (
+              <p className="text-xs text-slate-700 leading-relaxed">
+                {imageSummaryText}
+              </p>
+            )}
           </div>
         )}
 
@@ -296,7 +333,7 @@ export function VerificationPanel({
             </div>
 
             {/* Score and Verdict */}
-            <div className="flex items-center justify-around p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-100">
+            <div className="flex items-center justify-around p-4 rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100">
               <ScoreGauge score={verificationResult.authenticity_score} />
               <div className="flex flex-col items-center gap-2">
                 <Badge
@@ -309,221 +346,21 @@ export function VerificationPanel({
                     {verificationResult.verdict}
                   </span>
                 </Badge>
-                <span className="text-sm text-muted-foreground">Verdict</span>
+                <p className="text-xs text-muted-foreground text-center max-w-[220px]">
+                  Overall assessment of the selected claim based on gathered
+                  web evidence.
+                </p>
               </div>
             </div>
-
-            {/* KPI Tiles */}
-            <div className="grid grid-cols-2 gap-3 text-xs mt-2">
-              <div className="rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-100 px-3 py-2">
-                <p className="text-[11px] text-muted-foreground">Sources</p>
-                <p className="text-lg font-semibold">{totalSources}</p>
-              </div>
-
-              <div className="rounded-lg bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-100 px-3 py-2">
-                <p className="text-[11px] text-muted-foreground">
-                  Supporting
-                </p>
-                <p className="text-lg font-semibold text-emerald-700">
-                  {supportingCount}
-                </p>
-              </div>
-
-              <div className="rounded-lg bg-gradient-to-br from-rose-50 to-red-50 border border-rose-100 px-3 py-2">
-                <p className="text-[11px] text-muted-foreground">Refuting</p>
-                <p className="text-lg font-semibold text-rose-700">
-                  {refutingCount}
-                </p>
-              </div>
-
-              <div className="rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 px-3 py-2">
-                <p className="text-[11px] text-muted-foreground">
-                  Entities
-                </p>
-                <p className="text-lg font-semibold">{entityCount}</p>
-              </div>
-            </div>
-
-            {/* Image Authenticity (if available) */}
-            {verificationResult.image_verification && (
-              <div className="p-4 rounded-lg border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold">
-                      Image Authenticity
-                    </span>
-                    <Badge variant="outline" className="text-xs">
-                      {verificationResult.image_verification.provider}
-                    </Badge>
-                  </div>
-                  {verificationResult.image_verification.is_tampered ===
-                  null ? (
-                    <Badge className="bg-gradient-to-r from-gray-500 to-slate-500 text-white">
-                      <HelpCircle className="h-3 w-3 mr-1" />
-                      Inconclusive
-                    </Badge>
-                  ) : verificationResult.image_verification.is_tampered ? (
-                    <Badge className="bg-gradient-to-r from-red-500 to-rose-500 text-white">
-                      <XCircle className="h-3 w-3 mr-1" />
-                      Likely manipulated / AI-generated
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
-                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                      Likely original
-                    </Badge>
-                  )}
-                </div>
-
-                <div className="text-xs text-muted-foreground">
-                  Score:{" "}
-                  {verificationResult.image_verification.tampering_score !==
-                  null
-                    ? verificationResult.image_verification.tampering_score.toFixed(
-                        2
-                      )
-                    : "N/A"}{" "}
-                  (0 = likely real, 1 = likely fake/AI)
-                </div>
-
-                <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
-                  {verificationResult.image_verification.reasons.map(
-                    (reason, idx) => (
-                      <li key={idx}>{reason}</li>
-                    )
-                  )}
-                </ul>
-              </div>
-            )}
-
-            {/* Category display if available */}
-            {verificationResult.category && (
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className="bg-blue-50 text-blue-700 border-blue-200"
-                >
-                  Category: {verificationResult.category}
-                </Badge>
-              </div>
-            )}
-
-            {/* {verificationResult.graph &&
-              verificationResult.graph.nodes.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Evidence Graph</h4>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Hover over nodes to see details. Click nodes to open source
-                    URLs.
-                  </p>
-                  <EvidenceGraph
-                    graph={verificationResult.graph}
-                    onNodeClick={handleNodeClick}
-                  />
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
-                    <div className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                      <span>Supporting</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                      <span>Refuting</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded-full bg-gray-500"></div>
-                      <span>Neutral</span>
-                    </div>
-                  </div>
-                </div>
-              )} */}
-
-            {/* {verificationResult.evidence &&
-              verificationResult.evidence.length > 0 && (
-                <Collapsible
-                  open={isEvidenceOpen}
-                  onOpenChange={setIsEvidenceOpen}
-                >
-                  <CollapsibleTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-between hover:bg-purple-50"
-                    >
-                      <span className="font-medium">
-                        Evidence Sources ({verificationResult.evidence.length})
-                      </span>
-                      {isEvidenceOpen ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-2 space-y-2">
-                    {verificationResult.evidence.map((ev, idx) => (
-                      <div
-                        key={idx}
-                        className="p-3 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg border border-blue-100 hover:border-blue-300 transition-colors"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge
-                                variant="outline"
-                                className={
-                                  ev.stance === "supporting"
-                                    ? "bg-green-50 text-green-700 border-green-200"
-                                    : ev.stance === "refuting"
-                                    ? "bg-red-50 text-red-700 border-red-200"
-                                    : "bg-gray-50 text-gray-700 border-gray-200"
-                                }
-                              >
-                                {ev.stance}
-                              </Badge>
-                              <span className="text-xs text-muted-foreground">
-                                {Math.round(ev.confidence * 100)}% confidence
-                              </span>
-                            </div>
-                            <h5 className="font-medium text-sm mb-1 truncate">
-                              {ev.title}
-                            </h5>
-                            <p className="text-xs text-muted-foreground line-clamp-2">
-                              {ev.snippet}
-                            </p>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              window.open(
-                                ev.url,
-                                "_blank",
-                                "noopener,noreferrer"
-                              )
-                            }
-                            className="shrink-0"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </CollapsibleContent>
-                </Collapsible>
-              )} */}
 
             {/* Explanation */}
             {verificationResult.explanation && (
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-medium">Explanation</h4>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={copyExplanation}
-                    className="hover:bg-purple-50"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
+                <div className="flex items-center gap-2">
+                  <Info className="h-4 w-4 text-purple-500" />
+                  <h4 className="text-sm font-semibold">
+                    Explanation
+                  </h4>
                 </div>
                 <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg text-sm border border-blue-100">
                   <p className="leading-relaxed">

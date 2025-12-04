@@ -128,7 +128,7 @@ export function EvidenceGraph({ graph, onNodeClick }: EvidenceGraphProps) {
       .join("text")
       .text((d: any) => d.label)
       .attr("font-size", 12)
-      .attr("fill", "#e5e7eb")
+      .attr("fill", "#bcbec1ff")
       .attr("text-anchor", "middle")
       .attr("dy", (d: any) => (d.type === "claim" ? -20 : -16))
       .style("pointer-events", "none")
