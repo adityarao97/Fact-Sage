@@ -1,9 +1,22 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { EvidenceGraph } from "@/components/evidence-graph"
 import { EvidenceTable } from "@/components/evidence-table"
 import type { VerifyResponse } from "@/lib/types"
+
+// Lazy-load the D3 EvidenceGraph to reduce initial bundle size
+const EvidenceGraph = dynamic(
+  () => import("@/components/evidence-graph").then((m) => m.EvidenceGraph),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-[400px] rounded-xl border border-dashed border-border/40 flex items-center justify-center text-sm text-muted-foreground">
+        Loading evidence graph...
+      </div>
+    ),
+  },
+)
 
 interface EvidencePanelProps {
   verificationResult: VerifyResponse | null
