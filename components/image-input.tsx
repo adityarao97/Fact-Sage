@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ImageIcon, Loader2, ScanText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,17 @@ interface ImageInputProps {
   onResult: (result: IngestResponse) => void;
 }
 
-// 🔧 Helper: convert any File/Blob to a PNG Blob via canvas
+// Cache a single OCR worker to avoid repeated heavy initialization
+let ocrWorker: any | null = null;
+
+async function getOcrWorker() {
+  if (!ocrWorker) {
+    ocrWorker = await createWorker("eng");
+  }
+  return ocrWorker;
+}
+
+// Helper: convert any File/Blob to a PNG Blob via canvas
 async function fileOrBlobToPngBlob(input: File | Blob): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -66,145 +76,15 @@ export function ImageInput({ onResult }: ImageInputProps) {
   const [progress, setProgress] = useState<string>("");
   const { toast } = useToast();
 
-  // const handleSubmit = async () => {
-  //   setIsLoading(true);
-  //   setProgress("Initializing OCR...");
-
-  //   try {
-  //     let extractedText = "";
-
-  //     // Helper: run OCR on any image file/blob (always convert to PNG first)
-  //     const runOcrOnAnyImage = async (input: File | Blob) => {
-  //       console.log("[ImageInput] Original image:", {
-  //         size: "size" in input ? input.size : undefined,
-  //         type: "type" in input ? (input as File).type : "blob",
-  //       });
-
-  //       setProgress("Converting image to PNG...");
-  //       const pngBlob = await fileOrBlobToPngBlob(input);
-
-  //       console.log("[ImageInput] PNG blob:", {
-  //         size: pngBlob.size,
-  //         type: pngBlob.type,
-  //       });
-
-  //       setProgress("Running OCR on image...");
-  //       const worker = await createWorker("eng");
-
-  //       try {
-  //         const { data } = await worker.recognize(pngBlob);
-  //         return (data.text || "").trim();
-  //       } finally {
-  //         await worker.terminate();
-  //       }
-  //     };
-
-  //     // 1️⃣ Get image & run OCR (if possible)
-  //     if (imageFile) {
-  //       if (!validateFileSize(imageFile)) {
-  //         throw new Error("File must be less than 10MB");
-  //       }
-
-  //       extractedText = await runOcrOnAnyImage(imageFile);
-  //     } else if (imageUrl) {
-  //       setProgress("Fetching image from URL...");
-  //       let response: Response;
-  //       try {
-  //         response = await fetch(imageUrl);
-  //       } catch (e) {
-  //         throw new Error(
-  //           "Failed to fetch image from URL. It may not allow cross-origin requests (CORS) or the URL is invalid."
-  //         );
-  //       }
-
-  //       if (!response.ok) {
-  //         throw new Error(
-  //           `Failed to fetch image from URL (status ${response.status}). Make sure it's a direct image URL.`
-  //         );
-  //       }
-
-  //       const contentType = response.headers.get("Content-Type") || "";
-  //       if (!contentType.startsWith("image/")) {
-  //         throw new Error(
-  //           `URL does not point to an image (Content-Type: ${contentType}). Please use a direct image URL ending in .jpg or .png.`
-  //         );
-  //       }
-
-  //       const blob = await response.blob();
-  //       extractedText = await runOcrOnAnyImage(blob);
-  //     } else {
-  //       throw new Error("Please provide an image file or URL");
-  //     }
-
-  //     // 2️⃣ Extract claims IF there is text
-  //     const hasText = extractedText.trim().length > 0;
-  //     let claims: Claim[] = [];
-
-  //     if (hasText) {
-  //       setProgress("Extracting claims from text...");
-  //       claims = await extractClaims(extractedText, (msg) => setProgress(msg));
-  //     } else {
-  //       console.log(
-  //         "[ImageInput] No text detected in the image; skipping claim extraction."
-  //       );
-  //     }
-
-  //     // 3️⃣ Always try image authenticity verification (even if no text)
-  //     setProgress("Checking image authenticity...");
-  //     let image_verification: IngestResponse["image_verification"] | undefined;
-
-  //     try {
-  //       // Prefer URL if provided; otherwise send base64 (from preview)
-  //       const res = await fetch("/api/ingest/image-verify", {
-  //         method: "POST",
-  //         headers: { "Content-Type": "application/json" },
-  //         body: JSON.stringify({
-  //           imageUrl: imageUrl || undefined,
-  //           imageBase64: !imageUrl ? imageBase64 : undefined,
-  //         }),
-  //       });
-
-  //       if (res.ok) {
-  //         image_verification = await res.json();
-  //         console.log("[ImageInput] image_verification:", image_verification);
-  //       } else {
-  //         console.warn(
-  //           "[ImageInput] /api/image-verify failed:",
-  //           await res.text()
-  //         );
-  //       }
-  //     } catch (err) {
-  //       console.warn("[ImageInput] image-verify error:", err);
-  //     }
-
-  //     // 4️⃣ Build result
-  //     const result: IngestResponse = {
-  //       raw_text: extractedText,
-  //       claims,
-  //       image_verification,
-  //     };
-
-  //     onResult(result);
-
-  //     toast({
-  //       title: hasText ? "Success" : "No text found",
-  //       description: hasText
-  //         ? `Extracted ${claims.length} claim(s) from image`
-  //         : "No text detected in the image, but image authenticity was still checked.",
-  //     });
-  //   } catch (error) {
-  //     console.error("[v0] Image processing error:", error);
-  //     toast({
-  //       title: "Error",
-  //       description:
-  //         error instanceof Error ? error.message : "Failed to process image",
-  //       variant: "destructive",
-  //     });
-  //   } finally {
-  //     setIsLoading(false);
-  //     setProgress("");
-  //   }
-  // };
+  // Cleanup: terminate worker if component unmounts
+  useEffect(() => {
+    return () => {
+      if (ocrWorker) {
+        ocrWorker.terminate();
+        ocrWorker = null;
+      }
+    };
+  }, []);
 
   const handleSubmit = async () => {
     setIsLoading(true);
@@ -220,19 +100,15 @@ export function ImageInput({ onResult }: ImageInputProps) {
           throw new Error("File must be less than 10MB");
         }
 
-        // OCR via PNG conversion helper as before
+        // OCR via PNG conversion helper with cached worker
         const runOcrOnAnyImage = async (input: File | Blob) => {
           setProgress("Converting image to PNG...");
           const pngBlob = await fileOrBlobToPngBlob(input);
 
           setProgress("Running OCR on image...");
-          const worker = await createWorker("eng");
-          try {
-            const { data } = await worker.recognize(pngBlob);
-            return (data.text || "").trim();
-          } finally {
-            await worker.terminate();
-          }
+          const worker = await getOcrWorker();
+          const { data } = await worker.recognize(pngBlob);
+          return (data.text || "").trim();
         };
 
         extractedText = await runOcrOnAnyImage(imageFile);
