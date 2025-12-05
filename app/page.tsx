@@ -62,6 +62,7 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1">
             <InputPanel onResult={handleIngestResult} />
+            <ResultsHistoryPanel history={verificationHistory} />
           </div>
 
           <div className="lg:col-span-1 space-y-4">
@@ -92,7 +93,6 @@ export default function Home() {
               </div>
             )}
 
-            <ResultsHistoryPanel history={verificationHistory} />
           </div>
 
           <div className="lg:col-span-1">
