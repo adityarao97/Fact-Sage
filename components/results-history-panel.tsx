@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Claim, VerifyResponse } from "@/lib/types";
@@ -27,13 +27,16 @@ function formatDate(timestamp: string) {
 export function ResultsHistoryPanel({ history }: ResultsHistoryPanelProps) {
   if (!history.length) {
     return (
-      <Card className="border-dashed border-border/60 bg-card/60">
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm font-semibold text-muted-foreground">
+      <Card className="card-gradient border-2 border-primary/10 dark:border-border shadow-xl mt-4 dark:bg-card">
+        <CardHeader className="space-y-2">
+        <CardTitle className="text-xl bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
             Recent verifications
           </CardTitle>
+          <CardDescription className="text-sm">
+          Shows latest fact search history
+        </CardDescription>
         </CardHeader>
-        <CardContent className="text-xs text-muted-foreground">
+        <CardContent className="text-sm text-muted-foreground">
           No verifications yet. Run a check to see your recent results here.
         </CardContent>
       </Card>
@@ -41,11 +44,14 @@ export function ResultsHistoryPanel({ history }: ResultsHistoryPanelProps) {
   }
 
   return (
-    <Card className="border border-border/70 bg-card/80 backdrop-blur-sm">
-      <CardHeader className="py-3">
+      <Card className="card-gradient border-2 border-primary/10 dark:border-border mt-4 shadow-xl dark:bg-card">
+        <CardHeader className="space-y-2">
         <CardTitle className="text-xl bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-          Recent verifications
-        </CardTitle>
+            Recent verifications
+          </CardTitle>
+          <CardDescription className="text-sm">
+          Shows latest fact search history
+        </CardDescription>
       </CardHeader>
       <CardContent className="pt-0">
         <ScrollArea className="max-h-60 pr-2">
