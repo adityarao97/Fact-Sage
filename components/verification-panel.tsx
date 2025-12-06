@@ -63,6 +63,7 @@ export function VerificationPanel({
   const uniqueEntities = new Set(
     claims.flatMap((claim) => claim.entities ?? [])
   );
+  const entityCount = uniqueEntities.size;
 
   const handleVerify = async () => {
     if (selectedClaims.length === 0) {
@@ -184,59 +185,6 @@ export function VerificationPanel({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* KPI Tiles */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50 p-3 border border-purple-100">
-            <div className="text-[11px] font-medium text-purple-700">
-              Total Claims
-            </div>
-            <div className="text-xl font-semibold text-purple-900">
-              {claims.length}
-            </div>
-            <div className="mt-1 text-[10px] text-purple-600">
-              {uniqueEntities.size} unique entities
-            </div>
-          </div>
-
-          <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 p-3 border border-emerald-100">
-            <div className="text-[11px] font-medium text-emerald-700">
-              Evidence Sources
-            </div>
-            <div className="text-xl font-semibold text-emerald-900">
-              {totalSources}
-            </div>
-            <div className="mt-1 text-[10px] text-emerald-600">
-              {supportingCount} supporting · {refutingCount} refuting
-            </div>
-          </div>
-
-          <div className="rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 p-3 border border-blue-100">
-            <div className="text-[11px] font-medium text-blue-700">
-              Supporting
-            </div>
-            <div className="text-xl font-semibold text-blue-900">
-              {supportingCount}
-            </div>
-            <div className="mt-1 text-[10px] text-blue-600">
-              {neutralCount} neutral
-            </div>
-          </div>
-
-          <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 p-3 border border-slate-200">
-            <div className="text-[11px] font-medium text-slate-700">
-              Image Checks
-            </div>
-            <div className="text-xl font-semibold text-slate-900">
-              {imageVerification ? 1 : 0}
-            </div>
-            <div className="mt-1 text-[10px] text-slate-600">
-              {imageVerification
-                ? "Image authenticity analyzed"
-                : "No image provided"}
-            </div>
-          </div>
-        </div>
-
         {/* Raw Text Collapsible */}
         <Collapsible open={isRawTextOpen} onOpenChange={setIsRawTextOpen}>
           <div className="flex items-center justify-between">
@@ -353,14 +301,65 @@ export function VerificationPanel({
               </div>
             </div>
 
+            {/* KPI Tiles (below score & verdict) */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50 p-3 border border-purple-100">
+                <div className="text-[11px] font-medium text-purple-700">
+                  Total Claims
+                </div>
+                <div className="text-xl font-semibold text-purple-900">
+                  {claims.length}
+                </div>
+                <div className="mt-1 text-[10px] text-purple-600">
+                  {entityCount} unique entities
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 p-3 border border-emerald-100">
+                <div className="text-[11px] font-medium text-emerald-700">
+                  Evidence Sources
+                </div>
+                <div className="text-xl font-semibold text-emerald-900">
+                  {totalSources}
+                </div>
+                <div className="mt-1 text-[10px] text-emerald-600">
+                  {supportingCount} supporting · {refutingCount} refuting
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 p-3 border border-blue-100">
+                <div className="text-[11px] font-medium text-blue-700">
+                  Supporting
+                </div>
+                <div className="text-xl font-semibold text-blue-900">
+                  {supportingCount}
+                </div>
+                <div className="mt-1 text-[10px] text-blue-600">
+                  {neutralCount} neutral
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 p-3 border border-slate-200">
+                <div className="text-[11px] font-medium text-slate-700">
+                  Image Checks
+                </div>
+                <div className="text-xl font-semibold text-slate-900">
+                  {imageVerification ? 1 : 0}
+                </div>
+                <div className="mt-1 text-[10px] text-slate-600">
+                  {imageVerification
+                    ? "Image authenticity analyzed"
+                    : "No image provided"}
+                </div>
+              </div>
+            </div>
+
             {/* Explanation */}
             {verificationResult.explanation && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Info className="h-4 w-4 text-purple-500" />
-                  <h4 className="text-sm font-semibold">
-                    Explanation
-                  </h4>
+                  <h4 className="text-sm font-semibold">Explanation</h4>
                 </div>
                 <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg text-sm border border-blue-100">
                   <p className="leading-relaxed">
