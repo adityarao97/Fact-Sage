@@ -4,6 +4,8 @@ import dynamic from "next/dynamic"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { EvidenceTable } from "@/components/evidence-table"
 import type { VerifyResponse } from "@/lib/types"
+import { useTheme } from "next-themes"
+import { cn } from "@/lib/utils"
 
 // Lazy-load the D3 EvidenceGraph to reduce initial bundle size
 const EvidenceGraph = dynamic(
@@ -23,6 +25,8 @@ interface EvidencePanelProps {
 }
 
 export function EvidencePanel({ verificationResult }: EvidencePanelProps) {
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
   const handleNodeClick = (nodeId: string, url?: string) => {
     if (url) {
       window.open(url, "_blank", "noopener,noreferrer")
@@ -39,7 +43,14 @@ export function EvidencePanel({ verificationResult }: EvidencePanelProps) {
           <CardDescription>Verify claims to see evidence visualization</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-64 text-muted-foreground bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg border border-blue-100">
+          <div 
+                   className={cn(
+      "flex h-64 items-center justify-center rounded-lg border text-sm",
+      isDark
+        ? "text-slate-300 bg-gradient-to-br from-slate-950 to-purple-950 border-purple-900"
+        : "text-purple-900 bg-gradient-to-br from-blue-50 to-purple-50 border-blue-100"
+    )}
+  >
             No verification results yet
           </div>
         </CardContent>
