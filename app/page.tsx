@@ -12,8 +12,12 @@ import {
   ResultsHistoryPanel,
   type HistoryEntry,
 } from "@/components/results-history-panel";
+import { useTheme } from "next-themes"
+import { cn } from "@/lib/utils"
 
 export default function Home() {
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
   const [ingestResult, setIngestResult] = useState<IngestResponse | null>(null);
   const [verificationResult, setVerificationResult] =
     useState<VerifyResponse | null>(null);
@@ -65,7 +69,14 @@ export default function Home() {
                 onVerificationComplete={handleVerificationComplete}
               />
             ) : (
-              <div className="h-full min-h-[400px] flex items-center justify-center rounded-2xl border border-dashed border-purple-200/60 bg-gradient-to-br from-white to-purple-50/40 backdrop-blur-sm">
+              <div 
+                      className={cn(
+    "h-full min-h-[400px] flex items-center justify-center rounded-xl border-2 border-dashed backdrop-blur-sm",
+    isDark
+      ? "border-primary/50 bg-gradient-to-br from-slate-950 to-purple-950"
+      : "border-primary/30 bg-gradient-to-br from-white to-purple-50/30"
+  )}
+>
                 <div className="text-center px-6 py-12 space-y-4">
                   <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center shadow-md">
                     <CheckCircle2 className="h-8 w-8 text-primary" />
