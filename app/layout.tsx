@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "@/components/ui/toaster"
+import SkipLink from "@/components/skip-link";
 import { ThemeProvider } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 import { MuiThemeProvider } from "@/components/mui-theme-provider";
@@ -30,10 +31,8 @@ export default function RootLayout({
           inter.className
         )}
       >
-        {/* Accessible skip link */}
-        <a href="#main-content" className="skip-link">
-          Skip to main content
-        </a>
+        {/* Accessible skip link (only renders when page is scrollable) */}
+        <SkipLink />
 
         <ThemeProvider
           attribute="class"

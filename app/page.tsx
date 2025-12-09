@@ -52,7 +52,11 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50/30 via-blue-50/30 to-pink-50/30 dark:bg-background dark:bg-none text-foreground">
       <Header />
-      <main className="container mx-auto px-6 py-8">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="container mx-auto px-6 py-8"
+      >
         {/* <ApiBanner /> */}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
