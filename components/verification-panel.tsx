@@ -207,7 +207,7 @@ export function VerificationPanel({
             </CollapsibleTrigger>
           </div>
           <CollapsibleContent className="mt-2">
-            <div className="p-4 bg-gradient-to-br from-purple-50 to-white rounded-lg text-sm max-h-40 overflow-y-auto border border-purple-100">
+            <div className="p-4 rounded-lg text-sm max-h-40 overflow-y-auto border border border-border/60 dark:bg-purple-900/300">
               <p className="whitespace-pre-wrap leading-relaxed">{rawText}</p>
             </div>
           </CollapsibleContent>
@@ -238,7 +238,7 @@ export function VerificationPanel({
 
         {/* Image Authenticity (if available) */}
         {imageVerification && (
-          <div className="p-4 rounded-lg border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 space-y-2">
+          <div className="p-4 rounded-lg border border-border/60 space-y-2 dark:bg-slate-900/80">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold">
@@ -263,7 +263,7 @@ export function VerificationPanel({
               )}
             </div>
             {imageSummaryText && (
-              <p className="text-xs text-slate-700 leading-relaxed">
+              <p className="text-xs text-muted-foreground text-center ">
                 {imageSummaryText}
               </p>
             )}
