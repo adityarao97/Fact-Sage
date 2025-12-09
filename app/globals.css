@@ -232,15 +232,47 @@ html.dark .card-gradient {
 /* Accessible Skip Link */
 .skip-link {
   position: fixed;
+  top: -120px; /* hidden above the viewport */
+  left: 1rem;
   z-index: 10000;
+
+  padding: 0.6rem 1.1rem;
+  background: linear-gradient(90deg, var(--gradient-start), var(--gradient-mid));
+  color: white;
+  border-radius: 999px; /* pill */
+  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.12);
+  border: none;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: -0.2px;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+  transform: translateY(-12px);
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
 }
+
 /* When keyboard-focus reaches it, slide down into view */
 .skip-link:focus,
 .skip-link:focus-visible {
-  top: 0;
-  left: 0;
+  transform: translateY(0);
+  top: 5rem; /* slightly below top for breathing room */
+  left: 1rem;
+  opacity: 1;
+  pointer-events: auto;
   outline: 3px solid hsl(var(--primary-foreground));
-  outline-offset: 2px;
+  outline-offset: 3px;
+}
+
+/* Make sure on very small screens the link fits and remains visible when focused */
+@media (max-width: 420px) {
+  .skip-link:focus,
+  .skip-link:focus-visible {
+    left: 0.5rem;
+    right: 0.5rem;
+    width: auto;
+    box-sizing: border-box;
+  }
 }
 
 @layer components {
