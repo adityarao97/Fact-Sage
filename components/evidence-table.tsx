@@ -94,10 +94,12 @@ export function EvidenceTable({ evidence }: EvidenceTableProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold">Evidence Sources ({filteredAndSorted.length})</h3>
+        <h3 className="font-semibold">
+          Evidence Sources ({filteredAndSorted.length})
+        </h3>
         <div className="flex items-center gap-2">
           <Select value={stanceFilter} onValueChange={setStanceFilter}>
-            <SelectTrigger className="w-32 border-purple-200 focus:ring-purple-500">
+            <SelectTrigger className="w-32 border-purple-200 focus:ring-purple-500 dark:bg-[#1b182b] dark:border-white/10 dark:text-slate-100">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -111,7 +113,7 @@ export function EvidenceTable({ evidence }: EvidenceTableProps) {
             variant="outline"
             size="sm"
             onClick={copyCitations}
-            className="border-purple-200 hover:bg-purple-50 bg-transparent"
+            className="border-purple-200 hover:bg-purple-50 bg-transparent dark:bg-[#1b182b] dark:border-white/10 dark:text-slate-100 dark:hover:bg-[#26213c]"
           >
             <Copy className="mr-2 h-4 w-4" />
             Copy Citations
@@ -119,12 +121,17 @@ export function EvidenceTable({ evidence }: EvidenceTableProps) {
         </div>
       </div>
 
-      <div className="border border-purple-100 rounded-lg overflow-hidden">
+      <div className="border border-purple-100 rounded-lg overflow-hidden dark:border-purple-500/40 dark:bg-[#141321]">
         <Table>
-          <TableHeader className="bg-gradient-to-r from-purple-50 to-blue-50">
+          <TableHeader className="evidence-header-gradient">
             <TableRow>
               <TableHead className="w-24">
-                <Button variant="ghost" size="sm" onClick={() => toggleSort("stance")} className="h-8 px-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => toggleSort("stance")}
+                  className="h-8 px-2"
+                >
                   Stance
                   {sortField === "stance" &&
                     (sortOrder === "asc" ? (
@@ -135,7 +142,12 @@ export function EvidenceTable({ evidence }: EvidenceTableProps) {
                 </Button>
               </TableHead>
               <TableHead className="w-32">
-                <Button variant="ghost" size="sm" onClick={() => toggleSort("confidence")} className="h-8 px-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => toggleSort("confidence")}
+                  className="h-8 px-2"
+                >
                   Confidence
                   {sortField === "confidence" &&
                     (sortOrder === "asc" ? (
@@ -146,7 +158,12 @@ export function EvidenceTable({ evidence }: EvidenceTableProps) {
                 </Button>
               </TableHead>
               <TableHead>
-                <Button variant="ghost" size="sm" onClick={() => toggleSort("title")} className="h-8 px-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => toggleSort("title")}
+                  className="h-8 px-2"
+                >
                   Source
                   {sortField === "title" &&
                     (sortOrder === "asc" ? (
@@ -161,17 +178,22 @@ export function EvidenceTable({ evidence }: EvidenceTableProps) {
           </TableHeader>
           <TableBody>
             {filteredAndSorted.map((item, index) => (
-              <TableRow key={index} className="hover:bg-purple-50/50">
+              <TableRow
+                key={index}
+                className="hover:bg-purple-50/50 dark:hover:bg-[#1b182b]"
+              >
                 <TableCell>{getStanceBadge(item.stance)}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-purple-100 rounded-full h-2">
+                    <div className="flex-1 bg-purple-100 rounded-full h-2 dark:bg-slate-700">
                       <div
                         className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all shadow-sm"
                         style={{ width: `${item.confidence * 100}%` }}
                       />
                     </div>
-                    <span className="text-sm font-medium">{Math.round(item.confidence * 100)}%</span>
+                    <span className="text-sm font-medium">
+                      {Math.round(item.confidence * 100)}%
+                    </span>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -186,13 +208,24 @@ export function EvidenceTable({ evidence }: EvidenceTableProps) {
                       <ExternalLink className="h-3 w-3" />
                     </a>
                     <div className="text-sm text-muted-foreground">
-                      {expandedRows.has(index) ? item.snippet : `${item.snippet.slice(0, 100)}...`}
+                      {expandedRows.has(index)
+                        ? item.snippet
+                        : `${item.snippet.slice(0, 100)}...`}
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Button variant="ghost" size="sm" onClick={() => toggleExpand(index)} className="hover:bg-purple-50">
-                    {expandedRows.has(index) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleExpand(index)}
+                    className="hover:bg-purple-50 dark:hover:bg-[#26213c]"
+                  >
+                    {expandedRows.has(index) ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
                   </Button>
                 </TableCell>
               </TableRow>
@@ -203,3 +236,4 @@ export function EvidenceTable({ evidence }: EvidenceTableProps) {
     </div>
   )
 }
+

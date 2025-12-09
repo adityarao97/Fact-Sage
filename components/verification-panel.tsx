@@ -272,7 +272,7 @@ export function VerificationPanel({
 
         {/* Verification Results */}
         {verificationResult && (
-          <div className="space-y-4 pt-4 border-t border-purple-100">
+          <div className="space-y-4 pt-4 border-t border-purple-100 dark:border-slate-900">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold">Verification Results</h3>
               <JsonDownload
@@ -282,7 +282,7 @@ export function VerificationPanel({
             </div>
 
             {/* Score and Verdict */}
-            <div className="flex items-center justify-around p-4 rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100">
+            <div className="flex flex-col items-stretch gap-4 rounded-2xl border border-border/60 bg-muted/40 p-5 md:flex-row md:items-center md:justify-between dark:bg-slate-900/80">
               <ScoreGauge score={verificationResult.authenticity_score} />
               <div className="flex flex-col items-center gap-2">
                 <Badge
@@ -304,53 +304,45 @@ export function VerificationPanel({
 
             {/* KPI Tiles (below score & verdict) */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50 p-3 border border-purple-100">
-                <div className="text-[11px] font-medium text-purple-700">
+              <div className="rounded-2xl border border-blue-500/40 bg-blue-500/10 px-3 py-2">
+                <div className="text-[11px] font-medium text-blue-700">
                   Total Claims
                 </div>
-                <div className="text-xl font-semibold text-purple-900">
+                <div className="text-xl font-semibold text-blue-500">
                   {claims.length}
                 </div>
-                <div className="mt-1 text-[10px] text-purple-600">
+                <div className="mt-1 text-[10px] text-blue-600">
                   {entityCount} unique entities
                 </div>
               </div>
 
-              <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 p-3 border border-emerald-100">
+              <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2">
                 <div className="text-[11px] font-medium text-emerald-700">
-                  Evidence Sources
-                </div>
-                <div className="text-xl font-semibold text-emerald-900">
-                  {totalSources}
-                </div>
-                <div className="mt-1 text-[10px] text-emerald-600">
-                  {supportingCount} supporting · {refutingCount} refuting
-                </div>
-              </div>
-
-              <div className="rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 p-3 border border-blue-100">
-                <div className="text-[11px] font-medium text-blue-700">
                   Supporting
                 </div>
-                <div className="text-xl font-semibold text-blue-900">
+                <div className="text-xl font-semibold text-emerald-500">
                   {supportingCount}
-                </div>
-                <div className="mt-1 text-[10px] text-blue-600">
-                  {neutralCount} neutral
                 </div>
               </div>
 
-              <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 p-3 border border-slate-200">
-                <div className="text-[11px] font-medium text-slate-700">
-                  Image Checks
+              <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 px-3 py-2">
+                <div className="text-[11px] font-medium text-rose-700">
+                  Refuting
                 </div>
-                <div className="text-xl font-semibold text-slate-900">
-                  {imageVerification ? 1 : 0}
+                <div className="text-xl font-semibold text-rose-500">
+                  {refutingCount}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-500/40 bg-slate-500/10 px-3 py-2">
+                <div className="text-[11px] font-medium text-slate-700">
+                  Supporting
+                </div>
+                <div className="text-xl font-semibold text-slate-400">
+                  {supportingCount}
                 </div>
                 <div className="mt-1 text-[10px] text-slate-600">
-                  {imageVerification
-                    ? "Image authenticity analyzed"
-                    : "No image provided"}
+                {neutralCount} neutral
                 </div>
               </div>
             </div>
@@ -367,7 +359,7 @@ export function VerificationPanel({
                   <Info className="h-4 w-4 text-purple-500" />
                   <h4 className="text-sm font-semibold">Explanation</h4>
                 </div>
-                <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg text-sm border border-blue-100">
+                <div className="rounded-2xl border border-border/60 bg-muted/40 p-4 text-sm leading-relaxed dark:bg-purple-900/80">
                   <p className="leading-relaxed">
                     {verificationResult.explanation}
                   </p>
