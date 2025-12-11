@@ -23,40 +23,55 @@
 
 ### Why FactSage?
 
-- 🚀 **3-8 second verification** using Gemini AI + Google Search
-- 📸 **OCR support** for images and screenshots  
-- 🎯 **85-95% accuracy** with multi-source verification
-- 🔗 **Source attribution** with supporting and refuting evidence
-- 📊 **Visual knowledge graphs** showing verification paths
-- 🏷️ **Auto-categorization** (tech, business, politics, science, health)
+- 🚀 **3-8 second verification** using Gemini AI + Google Search  
+- 📸 **OCR support** for images, and screenshots  
+- 🎯 **High-accuracy verification** via multi-source reasoning  
+- 🔗 **Source attribution** with supporting & refuting evidence  
+- 📊 **Interactive knowledge graph** with evidence relationships  
+- 🧭 **Recent history panel** for comparing past verifications  
+- ♿ **Accessibility-first UX** (skip link, keyboard navigation, ARIA roles)
 
 ---
 
 ## ✨ Features
 
 ### 🤖 AI-Powered Verification
-- **Gemini 1.5 Flash** with Google Search grounding
-- Automatic claim extraction from messy OCR text
-- Intelligent query generation for optimal search results
-- Structured verdict with confidence scores
+- **Gemini 1.5 Flash** with Google Search grounding  
+- On-device **claim extraction** using lightweight AI models  
+- Automatic **query generation** for optimized web search  
+- Structured **verdict** with **confidence score & explanation**
 
 ### 📰 Multi-Source Analysis
-- Fetches 5-10 reputable sources automatically
-- Categorizes sources as supporting or refuting
-- Direct links to original articles
-- Comprehensive snippets and summaries
+- Fetches 5–15 reputable sources automatically  
+- Categorizes evidence as **supporting**, **refuting**, or **neutral**  
+- Displays **citations** with URLs and context snippets  
+- Highlights **entity matches** and keyword alignment
+
+### 📸 OCR & PDF Support
+- Image upload + drag-and-drop support  
+- Screenshot-to-text via **Tesseract.js**  
+- PNG conversion for consistent OCR accuracy  
+- URL ingestion with client-side preview  
+- **Cached OCR worker** for faster repeated extraction
 
 ### 📊 Visual Knowledge Graph
-- Interactive graph visualization
-- Shows verification paths and relationships
-- Clear evidence attribution
-- Easy-to-understand verdict display
+- Interactive D3 graph visualization  
+- Clickable evidence nodes that open source URLs  
+- Keyboard-accessible graph navigation (ARIA-friendly)  
+- Lazy-loaded graph for performance optimization
+
+### 🧭 Verification History Panel
+- Stores last **5 verifications** automatically  
+- Shows claim, verdict, and confidence score  
+- Displays evidence stance counts (support/neutral/refute)
+- Lightweight implementation with accessibility in mind
 
 ### 🔧 Developer-Friendly
-- TypeScript + Next.js 14
-- Clean API architecture
-- Extensible verification system
-- Comprehensive error handling
+- TypeScript + Next.js App Router  
+- Hybrid UI stack: **Shadcn/UI + MUI + Tailwind**  
+- **React Hook Form + Zod** for validation  
+- Dynamic imports for large components  
+- Modular architecture with clear separation of concerns
 
 ---
 
@@ -64,7 +79,7 @@
 
 ### Prerequisites
 
-- **Node.js** 18+ 
+- **Node.js 18+**
 - **npm** or **yarn**
 - **Gemini API Key** ([Get one free](https://aistudio.google.com/app/apikey))
 
@@ -73,7 +88,6 @@
 ```bash
 # Clone the repository
 git clone https://github.com/kashishdesai01/CMPE-280-FactSage.git
-cd factsage
 
 # Install dependencies
 npm install
@@ -142,44 +156,51 @@ Visit **http://localhost:3000** 🎉
 
 ```
 ┌─────────────────┐
-│   User Input    │ (Text/OCR Image)
+│   User Input    │  (Text / OCR Image)
 └────────┬────────┘
          │
          ▼
-┌─────────────────┐
-│ Claim Extractor │ (LLM-powered cleanup)
-└────────┬────────┘
+┌────────────────────────────────────────┐
+│ Claim Extractor (LLM + On-device AI)   │
+│ - OCR (Tesseract.js Worker)            │
+│ - Text cleanup + entity detection      │
+└────────┬───────────────────────────────┘
          │
          ▼
-┌─────────────────┐
-│ Gemini Verifier │ (Google Search + AI)
-└────────┬────────┘
-         │
-         ├─── Classify Category
-         ├─── Generate Search Query
-         ├─── Fetch 5-10 Sources
-         ├─── Analyze Evidence
-         └─── Generate Verdict
+┌─────────────────────────────────────────┐
+│ Gemini Verifier (Google Search + LLM)   │
+│ - Category detection                    │
+│ - Query generation                      │
+│ - Fetch 5–15 sources                    │
+│ - Evidence scoring + stance             │
+│ - Verdict + explanation generation      │
+└────────┬────────────────────────────────┘
          │
          ▼
-┌─────────────────┐
-│ Structured JSON │ (Verdict + Sources + Graph)
-└─────────────────┘
+┌──────────────────────────────────┐
+│ Structured JSON Output           │
+│ - Evidence array                 │
+│ - Verdict + confidence           │
+│ - Knowledge graph nodes/edges    │
+│ - Stance classification          │
+└──────────────────────────────────┘
 ```
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Technology | Purpose |
-|-----------|---------|
-| **Next.js 14** | React framework with App Router |
-| **TypeScript** | Type-safe development |
-| **Gemini 1.5 Flash** | AI fact-checking & analysis |
-| **Google Search** | Real-time web verification |
-| **Tesseract.js** | OCR for image text extraction |
-| **Tailwind CSS** | Utility-first styling |
-| **Shadcn/UI** | Component library |
+| Technology                  | Purpose                      |
+| --------------------------- | ---------------------------- |
+| **Next.js 14 (App Router)** | Main framework               |
+| **TypeScript**              | Type-safe development        |
+| **Gemini 1.5 Flash**        | AI reasoning + verification  |
+| **Google Search API**       | Real-time grounding          |
+| **Tesseract.js**            | OCR for images               |
+| **Tailwind CSS**            | Layout + utility styling     |
+| **Shadcn/UI + MUI**         | Components & accessible UI   |
+| **Zod + RHF**               | Strong form validation       |
+| **D3.js**                   | Evidence graph visualization |
 
 ---
 
@@ -190,19 +211,29 @@ factsage/
 ├── app/
 │   ├── api/
 │   │   ├── verify-claim/
-│   │   │   └── route.ts         # Main verification endpoint
-│   ├── page.tsx                 # Home page
-│   └── layout.tsx
-├── lib/
-│   ├── gemini-verifier.ts       # Gemini AI integration
-│   ├── claim-extractor.ts       # LLM claim extraction
-│   ├── types.ts                 # TypeScript definitions
-│   └── utils.ts
+│   │   │   └── route.ts             # Main verification endpoint
+│   │   ├── ingest/
+│   │   ├── image-verify/
+│   ├── page.tsx                     # Home page
+│   ├── layout.tsx
+│   └── globals.css
 ├── components/
-│   ├── claim-input.tsx
+│   ├── input-panel.tsx
+│   ├── text-input.tsx
+│   ├── image-input.tsx
+│   ├── verification-panel.tsx
 │   ├── evidence-panel.tsx
-│   └── knowledge-graph.tsx
-├── .env.local                   # Environment variables
+│   ├── evidence-graph.tsx
+│   ├── results-history-panel.tsx
+│   └── ui/...
+├── lib/
+│   ├── gemini-verifier.ts           # Gemini AI integration
+│   ├── claim-extractor.ts           # LLM claim extraction
+│   ├── types.ts                     # TypeScript definitions 
+│   ├── utils.ts
+│   └── image-utils.ts
+└── public/
+├── .env.local                       # Environment variables
 ├── package.json
 └── README.md
 ```
@@ -238,19 +269,36 @@ Verify a factual claim using AI + Google Search.
 # Run unit tests
 npm test
 
-# Test API endpoint
+# Test API endpoint (For manual check)
 curl -X POST http://localhost:3000/api/verify-claim \
   -H "Content-Type: application/json" \
   -d '{"text":"The earth is round"}'
 ```
 
 ---
+## ♿ Accessibility
+
+- Follows WCAG 2.1+ guidelines
+- Provides a skip link for keyboard users
+- Uses ARIA roles and labels on the interactive graph
+- Includes an `aria-live` region for verification status updates
+- Supports full keyboard navigation for all controls
+- Uses high-contrast, colorblind-safe design
+- Tested with Lighthouse (Accessibility score ≥ 95)
+
+## ⚡ Performance Highlights
+
+- Lazy-loads heavy components (e.g., D3-based graph)
+- Caches the Tesseract OCR worker for 3–5× faster subsequent OCR
+- Uses React memoization for KPI and evidence components
+- Reduces bundle weight and improves Time to Interactive (TTI)
+
+---
 
 ## 🔐 API Limits
 
 **Gemini Free Tier:**
-- ✅ 15 requests/minute
-- ✅ 1,500 requests/day
+- ✅ 20 requests/day
 - ✅ No credit card required
 
 **Cost (Paid Tier):**
@@ -278,20 +326,79 @@ We welcome contributions! Please follow these steps:
 
 ## 🙏 Acknowledgments
 
-- **Google Gemini** for AI capabilities
-- **Tesseract.js** for OCR functionality
-- **Next.js** team for the amazing framework
-- **Vercel** for deployment platform
+- **Google Gemini**
+- **Tesseract.js**
+- **Next.js** & **Vercel**
+- **Shadcn/UI** & **MUI**
 
 ## 🗺️ Roadmap
 
 - [x] Gemini AI integration
 - [x] OCR text extraction
-- [x] Knowledge graph visualization
+- [x] Interactive knowledge graph
+- [x] Verification history panel
+- [x] Accessibility improvements
+- [x] Historical claim tracking
 - [ ] Multi-language support
 - [ ] Browser extension
 - [ ] Mobile app (React Native)
-- [ ] API rate limiting dashboard
 - [ ] Custom source prioritization
-- [ ] Historical claim tracking
 - [ ] Collaborative fact-checking
+
+## 📸 UI Showcase (Screenshots & Responsive Layouts)
+
+FactSage is designed to be fully responsive and accessible across mobile, tablet, and desktop breakpoints.  
+Below is a showcase of key screens, input modes, and verification flows.
+
+---
+
+### 📱 Mobile View — Image Upload & OCR Workflow
+Displays the image upload interface, preview panel, and extraction workflow optimized for narrow screens.
+
+![Mobile Image Upload](./docs/screenshots/mobile-image-upload.png)
+
+---
+
+### 🖼️ OCR Image Preview (Auto-Extraction)
+Uploaded images are displayed with metadata before verification begins.
+
+![Image Preview](./docs/screenshots/ocr-preview.png)
+
+---
+
+### 📱 Tablet / Responsive Layout (iPad View)
+
+Demonstrates how FactSage adapts to medium screen sizes with adjusted spacing, stacked panels, and responsive evidence graph rendering.
+
+![Tablet Layout](./docs/screenshots/tablet-layout.png)
+
+---
+
+### 💻 Desktop Layout — Input + Verification Panels
+Three-column responsive layout showing:
+- Input Source  
+- Verification Panel  
+- Evidence Graph  
+
+![Desktop Layout 1](./docs/screenshots/desktop-layout.png)
+
+---
+
+### 💻 Full Verification Result — Verdict, Score, Evidence Table
+Complete results view showing:
+- Authenticity score  
+- Support vs. Refute breakdown  
+- Explanation  
+- Evidence sources  
+- Export JSON option  
+
+### 🌗 Dark Mode — Verified Claim Example
+
+The same workflow displayed in dark mode for accessible contrast and user comfort.
+
+![Dark Mode View](./docs/screenshots/dark-mode-view.png)
+
+### 🌤️ Light Mode — Verified Claim Example
+Light theme rendering with soft gradients, improved readability, and WCAG-compliant color tokens.
+
+![Light Mode View](./docs/screenshots/light-mode-view.png)
