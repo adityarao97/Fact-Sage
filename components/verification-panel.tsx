@@ -188,7 +188,7 @@ export function VerificationPanel({
       <CardContent className="space-y-4">
         {/* Raw Text Collapsible */}
         <Collapsible open={isRawTextOpen} onOpenChange={setIsRawTextOpen}>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-xs font-medium text-muted-foreground">
                 Source Text
@@ -200,7 +200,7 @@ export function VerificationPanel({
               </div>
             </div>
             <CollapsibleTrigger asChild>
-              <Button variant="outline" size="sm" className="text-xs">
+              <Button variant="outline" size="sm" className="text-xs w-full sm:w-auto">
                 {isRawTextOpen ? "Hide" : "Show"} full text
                 <ChevronDown className="ml-1 h-3 w-3" />
               </Button>
@@ -238,47 +238,53 @@ export function VerificationPanel({
 
         {/* Image Authenticity (if available) */}
         {imageVerification && (
-          <div className="p-4 rounded-lg border border-border/60 space-y-2 dark:bg-slate-900/80">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold">
-                  Image Authenticity
-                </span>
-                <Badge variant="outline" className="text-xs">
-                  {imageVerification.provider}
-                </Badge>
-              </div>
+        <div className="p-4 rounded-lg border border-border/60 space-y-2 dark:bg-slate-900/80">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-sm font-semibold whitespace-nowrap">
+                Image Authenticity
+              </span>
+              <Badge variant="outline" className="text-xs">
+                {imageVerification.provider}
+              </Badge>
+            </div>
+
+            <div className="flex-shrink-0">
               {imageVerification.is_tampered === null ? (
-                <Badge className="bg-amber-500 text-white text-xs">
+                <Badge className="bg-amber-500 text-white text-xs px-3 py-1">
                   Inconclusive
                 </Badge>
               ) : imageVerification.is_tampered ? (
-                <Badge className="bg-rose-500 text-white text-xs">
+                <Badge className="bg-rose-500 text-white text-xs px-3 py-1">
                   Possible Tampering
                 </Badge>
               ) : (
-                <Badge className="bg-emerald-500 text-white text-xs">
+                <Badge className="bg-emerald-500 text-white text-xs px-3 py-1">
                   No Tampering Detected
                 </Badge>
               )}
             </div>
-            {imageSummaryText && (
-              <p className="text-xs text-muted-foreground text-center ">
-                {imageSummaryText}
-              </p>
-            )}
           </div>
-        )}
+
+          {imageSummaryText && (
+            <p className="text-xs text-muted-foreground text-center">
+              {imageSummaryText}
+            </p>
+          )}
+        </div>
+      )}
 
         {/* Verification Results */}
         {verificationResult && (
           <div className="space-y-4 pt-4 border-t border-purple-100 dark:border-slate-900">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <h3 className="font-semibold">Verification Results</h3>
-              <JsonDownload
-                data={verificationResult}
-                filename="verification-results.json"
-              />
+              <div className="w-full sm:w-auto">
+                <JsonDownload
+                  data={verificationResult}
+                  filename="verification-results.json"
+                />
+              </div>
             </div>
 
             {/* Score and Verdict */}
@@ -303,46 +309,40 @@ export function VerificationPanel({
             </div>
 
             {/* KPI Tiles (below score & verdict) */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-2xl border border-blue-500/40 bg-blue-500/10 px-3 py-2">
-                <div className="text-[11px] font-medium text-blue-700">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-blue-500/40 bg-blue-500/10 px-4 py-3">
+                <div className="text-sm font-medium text-blue-700">
                   Total Claims
                 </div>
-                <div className="text-xl font-semibold text-blue-500">
+                <div className="mt-1 text-2xl font-semibold text-blue-500">
                   {claims.length}
-                </div>
-                <div className="mt-1 text-[10px] text-blue-600">
-                  {entityCount} unique entities
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2">
-                <div className="text-[11px] font-medium text-emerald-700">
+              <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3">
+                <div className="text-sm font-medium text-emerald-700">
                   Supporting
                 </div>
-                <div className="text-xl font-semibold text-emerald-500">
+                <div className="mt-1 text-2xl font-semibold text-emerald-500">
                   {supportingCount}
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 px-3 py-2">
-                <div className="text-[11px] font-medium text-rose-700">
+              <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3">
+                <div className="text-sm font-medium text-rose-700">
                   Refuting
                 </div>
-                <div className="text-xl font-semibold text-rose-500">
+                <div className="mt-1 text-2xl font-semibold text-rose-500">
                   {refutingCount}
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-500/40 bg-slate-500/10 px-3 py-2">
-                <div className="text-[11px] font-medium text-slate-700">
-                  Supporting
+              <div className="rounded-2xl border border-slate-500/40 bg-slate-500/10 px-4 py-3">
+                <div className="text-sm font-medium text-slate-700">
+                  Neutral
                 </div>
-                <div className="text-xl font-semibold text-slate-400">
-                  {supportingCount}
-                </div>
-                <div className="mt-1 text-[10px] text-slate-600">
-                {neutralCount} neutral
+                <div className="mt-1 text-2xl font-semibold text-slate-400">
+                  {neutralCount}
                 </div>
               </div>
             </div>

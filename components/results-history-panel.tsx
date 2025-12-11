@@ -54,7 +54,7 @@ export function ResultsHistoryPanel({ history }: ResultsHistoryPanelProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0">
-        <ScrollArea className="max-h-60 pr-2">
+        <ScrollArea className="max-h-120 pr-2">
           <ul className="space-y-3 text-xs">
             {history.map((entry) => {
               const { result, primaryClaim, timestamp } = entry;

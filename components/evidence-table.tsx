@@ -93,13 +93,13 @@ export function EvidenceTable({ evidence }: EvidenceTableProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="font-semibold">
           Evidence Sources ({filteredAndSorted.length})
         </h3>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           <Select value={stanceFilter} onValueChange={setStanceFilter}>
-            <SelectTrigger className="w-32 border-purple-200 focus:ring-purple-500 dark:bg-[#1b182b] dark:border-white/10 dark:text-slate-100">
+            <SelectTrigger className="w-full sm:w-40 border-purple-200 focus:ring-purple-500 dark:bg-[#1b182b] dark:border-white/10 dark:text-slate-100">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -113,7 +113,7 @@ export function EvidenceTable({ evidence }: EvidenceTableProps) {
             variant="outline"
             size="sm"
             onClick={copyCitations}
-            className="border-purple-200 hover:bg-purple-50 bg-transparent dark:bg-[#1b182b] dark:border-white/10 dark:text-slate-100 dark:hover:bg-[#26213c]"
+            className="w-full sm:w-auto border-purple-200 hover:bg-purple-50 bg-transparent dark:bg-[#1b182b] dark:border-white/10 dark:text-slate-100 dark:hover:bg-[#26213c]"
           >
             <Copy className="mr-2 h-4 w-4" />
             Copy Citations
