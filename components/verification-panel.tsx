@@ -237,7 +237,7 @@ export function VerificationPanel({
         </Button>
 
         {/* Image Authenticity (if available) */}
-        {imageVerification && (
+        {/* {imageVerification && (
         <div className="p-4 rounded-lg border border-border/60 space-y-2 dark:bg-slate-900/80">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
@@ -272,7 +272,7 @@ export function VerificationPanel({
             </p>
           )}
         </div>
-      )}
+      )} */}
 
         {/* Verification Results */}
         {verificationResult && (
