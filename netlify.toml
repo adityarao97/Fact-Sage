@@ -16,6 +16,3 @@
 
 [build.environment]
   NODE_VERSION = "20"
-
-[build.environment]
-  NPM_CONFIG_IGNORE_SCRIPTS = "false"
