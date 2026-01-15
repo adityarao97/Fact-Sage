@@ -28,6 +28,12 @@ const nextConfig = {
         util: false,
         sharp: false,
       }
+    } else {
+      // On server side, prevent sharp from being required
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        sharp$: false,
+      }
     }
 
     // Handle .node files
