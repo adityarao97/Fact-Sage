@@ -9,8 +9,13 @@ const nextConfig = {
   images: {
     unoptimized: true,
     dangerouslyAllowSVG: true,
+    disableStaticImages: false,
   },
   webpack: (config, { isServer }) => {
+    // Completely exclude sharp to prevent loading on Netlify
+    config.externals = config.externals || []
+    config.externals.push('sharp')
+
     // Handle node modules that are not available in the browser
     if (!isServer) {
       config.resolve.fallback = {

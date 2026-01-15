@@ -3,7 +3,7 @@
   publish = ".next"
 
 [build.environment]
-  npm_flags = "--legacy-peer-deps --ignore-scripts"
+  npm_flags = "--legacy-peer-deps --ignore-scripts --omit=optional"
   NODE_VERSION = "20"
 
 [functions]
