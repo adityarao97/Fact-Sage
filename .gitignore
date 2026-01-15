@@ -25,4 +25,7 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
+next-env.d.
+
+# fact check data
+/Fact Check Data/
