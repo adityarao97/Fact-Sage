@@ -15,8 +15,6 @@ import {
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 
-export const dynamic = "force-dynamic"
-
 export default function Home() {
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === "dark"

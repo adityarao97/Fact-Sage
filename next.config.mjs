@@ -12,10 +12,6 @@ const nextConfig = {
     disableStaticImages: false,
   },
   webpack: (config, { isServer }) => {
-    // Completely exclude sharp to prevent loading on Netlify
-    config.externals = config.externals || []
-    config.externals.push('sharp')
-
     // Handle node modules that are not available in the browser
     if (!isServer) {
       config.resolve.fallback = {
@@ -26,13 +22,6 @@ const nextConfig = {
         stream: false,
         buffer: false,
         util: false,
-        sharp: false,
-      }
-    } else {
-      // On server side, prevent sharp from being required
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        sharp$: false,
       }
     }
 

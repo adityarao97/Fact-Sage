@@ -1,5 +1,4 @@
 import type { Claim } from "./types"
-import { pipeline } from "@xenova/transformers"
 
 /**
  * Extract claims from text using a lightweight LLM (Flan-T5)
@@ -13,6 +12,7 @@ let generator: any = null
 async function getGenerator() {
   if (!generator) {
     console.log("[CLAIM-EXTRACT] Loading Flan-T5 model...")
+    const { pipeline } = await import("@xenova/transformers")
     generator = await pipeline("text2text-generation", "Xenova/flan-t5-small")
     console.log("[CLAIM-EXTRACT] Model loaded successfully")
   }
