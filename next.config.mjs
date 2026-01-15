@@ -8,6 +8,7 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    dangerouslyAllowSVG: true,
   },
   webpack: (config, { isServer }) => {
     // Handle node modules that are not available in the browser
@@ -20,6 +21,7 @@ const nextConfig = {
         stream: false,
         buffer: false,
         util: false,
+        sharp: false,
       }
     }
 

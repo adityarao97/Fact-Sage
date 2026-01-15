@@ -1,7 +1,8 @@
 [build]
   command = "pnpm run build"
   publish = ".next"
-
+[build.environment]
+  npm_flags = "--legacy-peer-deps --ignore-scripts"
 [functions]
   directory = "netlify/functions"
 
